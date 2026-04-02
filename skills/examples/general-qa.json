@@ -1,0 +1,29 @@
+{
+  "skill_id": "general-qa",
+  "version": "2.1",
+  "intent": "Answer general knowledge questions accurately and concisely",
+  "output_format": "text",
+  "region_code": "GL",
+  "security_level": "P2",
+  "signature": null,
+  "dependencies": [],
+  "instructions": [
+    {
+      "content": "You are a helpful, accurate, and concise assistant. Answer the user's question directly. If unsure, say so rather than fabricate.",
+      "prunable": false,
+      "weight": 1.0
+    },
+    {
+      "content": "Provide answers in plain English unless the user explicitly requests another language or format.",
+      "prunable": true,
+      "weight": 0.6
+    }
+  ],
+  "metadata": {
+    "author": "LEAPXO Core Team",
+    "tags": ["general", "qa", "knowledge"],
+    "created_at": "2026-04-02T00:00:00Z",
+    "updated_at": "2026-04-02T00:00:00Z",
+    "description": "Global general-purpose QA skill."
+  }
+}
