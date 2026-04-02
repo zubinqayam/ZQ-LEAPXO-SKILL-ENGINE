@@ -1,0 +1,5 @@
+# LEAPXO Skill Engine – root workspace
+node_modules/
+dist/
+.env
+*.log
