@@ -1,0 +1,105 @@
+# LEAPXO Skill Engine v2.1 — Helm Values
+# Supports: cloud, hybrid, air-gapped (full offline) deployment modes.
+
+global:
+  deploymentMode: cloud  # cloud | hybrid | air-gapped
+
+# ── Orchestrator ──────────────────────────────────────────────────────────
+orchestrator:
+  replicaCount: 2
+  image:
+    repository: leapxo/skill-engine-orchestrator
+    tag: "2.1.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  contextWindow: 8192
+  env:
+    LOG_LEVEL: "INFO"
+  podAnnotations:
+    # AppArmor profile for container-level isolation
+    container.apparmor.security.beta.kubernetes.io/orchestrator: "runtime/default"
+
+# ── Skill Registry ────────────────────────────────────────────────────────
+registry:
+  replicaCount: 1
+  image:
+    repository: leapxo/skill-registry
+    tag: "2.1.0"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: "10Gi"
+
+# ── Vector DB (HNSW) ──────────────────────────────────────────────────────
+vectordb:
+  enabled: true
+  image:
+    repository: qdrant/qdrant
+    tag: "v1.9.0"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: "20Gi"
+  blueGreenEnabled: true
+
+# ── Redis (IPC, TTL-based, mTLS) ──────────────────────────────────────────
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: "leapxo-redis-secret"
+    existingSecretPasswordKey: "redis-password"
+  tls:
+    enabled: true
+    existingSecret: "leapxo-redis-tls"
+  master:
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+
+# ── Security Layer ────────────────────────────────────────────────────────
+security:
+  ecdsaPublicKeySecret: "leapxo-ecdsa-pubkey"
+  enforceSignatures: true
+  promptFirewall:
+    enabled: true
+    strictMode: true
+  appArmor:
+    profile: "leapxo-skill-default"
+
+# ── Ingress ───────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: skill-engine.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ── Service ───────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8080
+
+# ── Monitoring ────────────────────────────────────────────────────────────
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+# ── Air-gapped overrides ─────────────────────────────────────────────────
+airGapped:
+  imageRegistry: "registry.internal"
+  offlineMode: false

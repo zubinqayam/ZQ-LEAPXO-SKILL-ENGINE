@@ -1,0 +1,14 @@
+apiVersion: v2
+name: leapxo-skill-engine
+description: LEAPXO Skill Engine v2.1 — Hardened + Enhanced AI Skill Orchestration
+type: application
+version: 2.1.0
+appVersion: "2.1.0"
+keywords:
+  - ai
+  - skill-engine
+  - orchestration
+  - leapxo
+maintainers:
+  - name: LEAPXO Team
+    email: platform@leapxo.ai
