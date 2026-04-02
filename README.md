@@ -1,6 +1,55 @@
-# LEAPXO Skill Engine v2.1 — Hardened + Enhanced
+# LEAPXO Skill Engine
 
 > Production-grade, end-to-end AI skill orchestration covering architecture, execution, governance, security, and deployment.
+
+---
+
+## Full-Stack v1 — Monorepo Quick Start
+
+This repository is structured as a monorepo:
+
+```
+backend/    FastAPI server (LeapXO v3.6 engine)
+frontend/   React Keyhole UI (Vite)
+src/        Core Python skill-engine library (v2.1)
+tests/      pytest suite
+```
+
+### Backend (FastAPI)
+
+**Requirements:** Python ≥ 3.11
+
+```bash
+# 1. Install dependencies
+pip install fastapi uvicorn
+
+# 2. Start the server (from repo root)
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at `http://localhost:8000`.  
+Interactive docs: `http://localhost:8000/docs`
+
+### Frontend (React + Vite)
+
+**Requirements:** Node.js ≥ 18
+
+```bash
+# 1. Enter the frontend directory
+cd frontend
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the dev server (proxies /agents, /tasks, /status to localhost:8000)
+npm run dev
+```
+
+The Keyhole UI will be available at `http://localhost:5173`.
+
+> **Tip:** Start the backend first so the frontend can connect immediately.
+
+---
 
 ---
 
