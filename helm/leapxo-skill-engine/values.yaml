@@ -1,4 +1,4 @@
-# LEAPXO Skill Engine v2.1 — Helm Values
+# LEAPXO Skill Engine v9.0.0 — Helm Values
 # Supports: cloud, hybrid, air-gapped (full offline) deployment modes.
 
 global:
@@ -9,7 +9,7 @@ orchestrator:
   replicaCount: 2
   image:
     repository: leapxo/skill-engine-orchestrator
-    tag: "2.1.0"
+    tag: "9.0.0"
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -21,6 +21,8 @@ orchestrator:
   contextWindow: 8192
   env:
     LOG_LEVEL: "INFO"
+    LEAPXO_ENV: "production"
+    PORT: "8080"
   podAnnotations:
     # AppArmor profile for container-level isolation
     container.apparmor.security.beta.kubernetes.io/orchestrator: "runtime/default"
@@ -30,7 +32,7 @@ registry:
   replicaCount: 1
   image:
     repository: leapxo/skill-registry
-    tag: "2.1.0"
+    tag: "9.0.0"
     pullPolicy: IfNotPresent
   persistence:
     enabled: true
@@ -75,6 +77,20 @@ security:
     strictMode: true
   appArmor:
     profile: "leapxo-skill-default"
+  # Inject sensitive keys from Kubernetes Secrets into the orchestrator pod
+  secretEnvVars:
+    - envVar: LEAPXO_DB_KEY
+      secretName: leapxo-vault-secrets
+      secretKey: db-key
+    - envVar: LEAPXO_API_KEY
+      secretName: leapxo-vault-secrets
+      secretKey: api-key
+    - envVar: LEAPXO_SECRET_KEY
+      secretName: leapxo-vault-secrets
+      secretKey: secret-key
+    - envVar: LEAPXO_FEEDBACK_ENC_KEY
+      secretName: leapxo-vault-secrets
+      secretKey: feedback-enc-key
 
 # ── Ingress ───────────────────────────────────────────────────────────────
 ingress:

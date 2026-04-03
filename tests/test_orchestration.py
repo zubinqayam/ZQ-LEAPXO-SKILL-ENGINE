@@ -1,20 +1,18 @@
 """Integration tests for the OrchestrationEngine."""
 
-import pytest
-
-from src.orchestration.engine import OrchestrationEngine, EngineRequest
+from src.cache.semantic_cache import SemanticCache
+from src.core.skill_schema import SkillSchema
+from src.execution.circuit_breaker import CircuitBreakerRegistry
 from src.execution.l1_discovery import L1Discovery
 from src.execution.l2_instruction import L2InstructionLoader
 from src.execution.l3_executor import InProcessL3Executor
+from src.orchestration.engine import EngineRequest, OrchestrationEngine
 from src.registry.skill_registry import SkillRegistry
-from src.cache.semantic_cache import SemanticCache
-from src.execution.circuit_breaker import CircuitBreakerRegistry
-from src.core.skill_schema import SkillSchema
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_engine(skill_id: str = "test-skill", region_code: str = "GL"):
     """Build a fully wired engine with one skill registered."""
@@ -42,9 +40,12 @@ def _make_engine(skill_id: str = "test-skill", region_code: str = "GL"):
     )
 
     l2 = L2InstructionLoader()
-    l2.register_instructions(skill_id, [
-        {"content": "You are a helpful assistant.", "prunable": False, "weight": 1.0},
-    ])
+    l2.register_instructions(
+        skill_id,
+        [
+            {"content": "You are a helpful assistant.", "prunable": False, "weight": 1.0},
+        ],
+    )
 
     # Use a constant embedding function so cosine(query, index) == 1.0 always
     def _const_embedding(_: str) -> list:
@@ -64,6 +65,7 @@ def _make_engine(skill_id: str = "test-skill", region_code: str = "GL"):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestSuccessfulExecution:
     def test_basic_request_succeeds(self):
@@ -106,9 +108,11 @@ class TestIntentLoop:
     def test_repeated_intent_blocked(self):
         engine = _make_engine()
         session = "loop-session"
-        for i in range(2):
+        for _i in range(2):
             engine.execute(EngineRequest(user_input="same intent exactly", session_id=session))
-        response = engine.execute(EngineRequest(user_input="same intent exactly", session_id=session))
+        response = engine.execute(
+            EngineRequest(user_input="same intent exactly", session_id=session)
+        )
         assert response.success is False
         assert response.circuit_tier == "intent_loop"
 

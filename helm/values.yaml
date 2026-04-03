@@ -1,0 +1,118 @@
+# LEAPXO Skill Engine v2.1 – Helm umbrella chart values
+# Override per environment (staging, production) with -f values.prod.yaml
+
+# Shared values accessible in all subcharts via .Values.global.*
+global:
+  replicaCount: 3
+  image:
+    pullPolicy: IfNotPresent
+
+orchestrator:
+  replicaCount: 3
+  image:
+    repository: leapxo/orchestrator
+    tag: v2.1
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "512Mi"
+  service:
+    port: 4000
+
+registry:
+  replicaCount: 3
+  image:
+    repository: leapxo/registry
+    tag: v2.1
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+frontend:
+  replicaCount: 3
+  image:
+    repository: leapxo/frontend
+    tag: v2.1
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+  service:
+    port: 80
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+  persistence:
+    enabled: true
+    size: 1Gi
+
+# Note: the dependency name in Chart.yaml is "vector-db"; values must be nested
+# under the same key so Helm passes them through to the subchart.
+vector-db:
+  enabled: true
+  type: hnsw
+  image:
+    repository: leapxo/vector-db
+    tag: v2.1
+    pullPolicy: IfNotPresent
+  dimensions: 768
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# PostgreSQL values are intentionally omitted until this chart declares
+# and wires a PostgreSQL dependency or templates that consume them.
+
+security:
+  ecdsa: true
+  tlsEnabled: true
+  # Placeholder: networkPolicy is not yet implemented in chart templates.
+  # networkPolicy:
+  #   enabled: true
+
+# Placeholder: ingress resources are not yet implemented in chart templates.
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#   hosts:
+#     - host: leapxo.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: leapxo-tls
+#       hosts:
+#         - leapxo.example.com
+
+# Placeholder: HorizontalPodAutoscaler is not yet implemented in chart templates.
+# autoscaling:
+#   enabled: true
+#   minReplicas: 2
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 70

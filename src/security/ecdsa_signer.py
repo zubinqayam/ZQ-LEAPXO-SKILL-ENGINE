@@ -20,24 +20,18 @@ Usage:
 from __future__ import annotations
 
 import base64
-import hashlib
 import json
-from typing import Union
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import (
-    decode_dss_signature,
-    encode_dss_signature,
-)
-from cryptography.exceptions import InvalidSignature
 
 from src.core.exceptions import SignatureVerificationError
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def canonical_payload(skill: dict) -> bytes:
     """Return a stable canonical byte representation of a skill dict.
@@ -47,12 +41,15 @@ def canonical_payload(skill: dict) -> bytes:
     Serialised as UTF-8 JSON with sorted keys, no extra whitespace.
     """
     clean = {k: v for k, v in skill.items() if k != "signature"}
-    return json.dumps(clean, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(clean, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Signer (private-key side — Skill Factory only)
 # ---------------------------------------------------------------------------
+
 
 class ECDSASigner:
     """Signs skill payloads with ECDSA P-256.
@@ -108,7 +105,7 @@ class ECDSASigner:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_pem(cls, pem: bytes, password: bytes | None = None) -> "ECDSASigner":
+    def from_pem(cls, pem: bytes, password: bytes | None = None) -> ECDSASigner:
         key = serialization.load_pem_private_key(pem, password=password)
         if not isinstance(key, ec.EllipticCurvePrivateKey):
             raise ValueError("PEM does not contain an EC private key.")
@@ -118,6 +115,7 @@ class ECDSASigner:
 # ---------------------------------------------------------------------------
 # Verifier (public-key side — Skill Registry)
 # ---------------------------------------------------------------------------
+
 
 class ECDSAVerifier:
     """Verifies skill signatures using the published public key."""

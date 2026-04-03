@@ -3,13 +3,12 @@
 import time
 
 import pytest
-
+from src.core.exceptions import CircuitBreakerOpenError, IntentLoopError
 from src.execution.circuit_breaker import (
+    BreakerState,
     CircuitBreaker,
     CircuitBreakerRegistry,
-    BreakerState,
 )
-from src.core.exceptions import CircuitBreakerOpenError, IntentLoopError
 
 
 class TestCircuitBreaker:
