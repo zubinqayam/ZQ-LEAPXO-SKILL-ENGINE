@@ -5,7 +5,7 @@ metadata:
   labels:
     app: registry
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ default .Values.global.replicaCount (default 1 .Values.replicaCount) }}
   selector:
     matchLabels:
       app: registry
@@ -17,7 +17,7 @@ spec:
       containers:
         - name: registry
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ default "IfNotPresent" (default .Values.global.image.pullPolicy .Values.image.pullPolicy) }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 ---

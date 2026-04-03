@@ -5,7 +5,7 @@ metadata:
   labels:
     app: orchestrator
 spec:
-  replicas: {{ default 1 (default .Values.global.replicaCount .Values.replicaCount) }}
+  replicas: {{ default .Values.global.replicaCount (default 1 .Values.replicaCount) }}
   selector:
     matchLabels:
       app: orchestrator
@@ -16,12 +16,12 @@ spec:
     spec:
       containers:
         - name: orchestrator
-          image: "{{ .Values.orchestrator.image.repository }}:{{ .Values.orchestrator.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ default "IfNotPresent" (default .Values.global.image.pullPolicy .Values.image.pullPolicy) }}
           ports:
             - containerPort: 4000
           resources:
-            {{- toYaml .Values.orchestrator.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: NODE_ENV
               value: production
@@ -48,5 +48,5 @@ spec:
   selector:
     app: orchestrator
   ports:
-    - port: {{ .Values.orchestrator.service.port }}
+    - port: {{ .Values.service.port }}
       targetPort: 4000

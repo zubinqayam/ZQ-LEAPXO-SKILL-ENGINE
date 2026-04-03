@@ -5,7 +5,7 @@ metadata:
   labels:
     app: frontend
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ default .Values.global.replicaCount (default 1 .Values.replicaCount) }}
   selector:
     matchLabels:
       app: frontend
@@ -16,12 +16,12 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ default "IfNotPresent" (default .Values.global.image.pullPolicy .Values.image.pullPolicy) }}
           ports:
             - containerPort: 80
           resources:
-            {{- toYaml .Values.frontend.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
 ---
 apiVersion: v1
 kind: Service
@@ -31,5 +31,5 @@ spec:
   selector:
     app: frontend
   ports:
-    - port: {{ .Values.frontend.service.port }}
+    - port: {{ .Values.service.port }}
       targetPort: 80

@@ -1,15 +1,18 @@
-# LEAPXO Skill Engine – Helm umbrella chart values
+# LEAPXO Skill Engine v2.1 – Helm umbrella chart values
 # Override per environment (staging, production) with -f values.prod.yaml
 
-replicaCount: 3
-
-image:
-  pullPolicy: IfNotPresent
+# Shared values accessible in all subcharts via .Values.global.*
+global:
+  replicaCount: 3
+  image:
+    pullPolicy: IfNotPresent
 
 orchestrator:
+  replicaCount: 3
   image:
     repository: leapxo/orchestrator
     tag: v2.1
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: "250m"
@@ -21,9 +24,11 @@ orchestrator:
     port: 4000
 
 registry:
+  replicaCount: 3
   image:
     repository: leapxo/registry
     tag: v2.1
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: "100m"
@@ -33,9 +38,11 @@ registry:
       memory: "256Mi"
 
 frontend:
+  replicaCount: 3
   image:
     repository: leapxo/frontend
     tag: v2.1
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: "100m"
@@ -51,6 +58,7 @@ redis:
   image:
     repository: redis
     tag: "7-alpine"
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: "100m"
@@ -62,12 +70,15 @@ redis:
     enabled: true
     size: 1Gi
 
-vectorDB:
+# Note: the dependency name in Chart.yaml is "vector-db"; values must be nested
+# under the same key so Helm passes them through to the subchart.
+vector-db:
   enabled: true
   type: hnsw
   image:
     repository: leapxo/vector-db
     tag: v2.1
+    pullPolicy: IfNotPresent
   dimensions: 768
   persistence:
     enabled: true
@@ -79,26 +90,29 @@ vectorDB:
 security:
   ecdsa: true
   tlsEnabled: true
-  networkPolicy:
-    enabled: true
+  # Placeholder: networkPolicy is not yet implemented in chart templates.
+  # networkPolicy:
+  #   enabled: true
 
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-  hosts:
-    - host: leapxo.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: leapxo-tls
-      hosts:
-        - leapxo.example.com
+# Placeholder: ingress resources are not yet implemented in chart templates.
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#   hosts:
+#     - host: leapxo.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: leapxo-tls
+#       hosts:
+#         - leapxo.example.com
 
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+# Placeholder: HorizontalPodAutoscaler is not yet implemented in chart templates.
+# autoscaling:
+#   enabled: true
+#   minReplicas: 2
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 70

@@ -1,6 +1,6 @@
 apiVersion: v2
-name: leapxo-skill-engine
-description: LEAPXO Skill Engine v2.1 – AI Orchestration Platform
+name: leapxo-skill-engine-v2
+description: LEAPXO Skill Engine v2.1 – AI Orchestration Platform (full-stack starter)
 type: application
 version: 2.1.0
 appVersion: "2.1"

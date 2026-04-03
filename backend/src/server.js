@@ -6,7 +6,25 @@ import { skillSchema } from "./skills/schema.js";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+// Restrict CORS to explicitly listed origins (comma-separated env var).
+// In development, omit CORS_ALLOWED_ORIGINS to allow all origins.
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow server-to-server requests (no Origin header) unconditionally.
+    if (!origin) return callback(null, true);
+    // If no allowlist configured, allow everything (dev mode).
+    if (allowedOrigins.length === 0) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // POST /execute – run a skill against a prompt
@@ -21,7 +39,12 @@ app.post("/execute", async (req, res) => {
     const result = await orchestrate(prompt);
     res.json({ result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const msg = err.message || "Internal server error";
+    if (msg === "Blocked by firewall") return res.status(403).json({ error: msg });
+    if (msg.startsWith("Token limit exceeded")) return res.status(413).json({ error: msg });
+    if (msg === "No skills registered in the registry") return res.status(503).json({ error: msg });
+    console.error("[/execute] Unexpected error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -34,6 +57,11 @@ app.get("/skills/graph", async (req, res) => {
 // POST /skills – register a new skill (stub; wire to DB in production)
 app.post("/skills", async (req, res) => {
   const skill = req.body;
+
+  if (skill === null || typeof skill !== "object" || Array.isArray(skill)) {
+    return res.status(400).json({ error: "Request body must be a JSON object" });
+  }
+
   const required = skillSchema.required;
   const missing = required.filter((k) => !skill[k]);
 

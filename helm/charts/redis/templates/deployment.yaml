@@ -16,18 +16,18 @@ spec:
     spec:
       containers:
         - name: redis
-          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ default "IfNotPresent" (default .Values.global.image.pullPolicy .Values.image.pullPolicy) }}
           ports:
             - containerPort: 6379
           resources:
-            {{- toYaml .Values.redis.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: redis-data
               mountPath: /data
       volumes:
         - name: redis-data
-          {{- if .Values.redis.persistence.enabled }}
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-redis-pvc
           {{- else }}
@@ -44,7 +44,7 @@ spec:
   ports:
     - port: 6379
       targetPort: 6379
-{{- if .Values.redis.persistence.enabled }}
+{{- if .Values.persistence.enabled }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -55,5 +55,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.redis.persistence.size }}
+      storage: {{ .Values.persistence.size }}
 {{- end }}

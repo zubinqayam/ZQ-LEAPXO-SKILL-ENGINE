@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: vector-db
-          image: "{{ .Values.vectorDB.image.repository }}:{{ .Values.vectorDB.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ default "IfNotPresent" (default .Values.global.image.pullPolicy .Values.image.pullPolicy) }}
           ports:
             - containerPort: 6333
           volumeMounts:
@@ -25,7 +25,7 @@ spec:
               mountPath: /data
       volumes:
         - name: vector-data
-          {{- if .Values.vectorDB.persistence.enabled }}
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-vector-db-pvc
           {{- else }}
@@ -42,7 +42,7 @@ spec:
   ports:
     - port: 6333
       targetPort: 6333
-{{- if .Values.vectorDB.persistence.enabled }}
+{{- if .Values.persistence.enabled }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -53,5 +53,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.vectorDB.persistence.size }}
+      storage: {{ .Values.persistence.size }}
 {{- end }}
