@@ -35,13 +35,20 @@ For each new accessibility issue:
 
 ### 4. Comment Marking
 
-Add HTML comment markers to affected code locations:
+Add comment markers to affected code locations. Use the appropriate syntax for the file type:
 
+**HTML / template files:**
 ```html
 <!-- accessibility-fix: issue-[number] - Brief description -->
 [problematic code]
 <!-- /accessibility-fix -->
+```
 
+**JSX / TSX files:**
+```jsx
+{/* accessibility-fix: issue-[number] - Brief description */}
+[problematic code]
+{/* /accessibility-fix */}
 ```
 
 ## Triage System
@@ -66,7 +73,7 @@ Add HTML comment markers to affected code locations:
 
 **Detection:**
 
-- Interactive elements without keyboard support (missing `tabindex`, `onKeyDown`)
+- Interactive elements without keyboard support (missing `tabindex` in HTML / `tabIndex` in JSX/TSX, `onKeyDown`)
 - `<div>` or `<span>` used as buttons without proper ARIA roles
 - Focus trap in modals without proper management
 - Positive `tabindex` values (anti-pattern)
@@ -79,7 +86,7 @@ Add HTML comment markers to affected code locations:
 - Use semantic HTML (`<button>`, `<a>`)
 - Add `role="button"` and keyboard event handlers if needed
 - Implement focus management for modals
-- Use `tabindex="0"` or "-1", never positive values
+- Use `tabindex="0"` (HTML) / `tabIndex={0}` (JSX/TSX) or `"-1"` / `{-1}`, never positive values
 - Ensure `:focus` and `:focus-visible` styles exist
 
 ### Category 3: Form Accessibility (WCAG A - High)
@@ -318,22 +325,38 @@ Severity: [Critical/High/Medium/Low]
 
 ```
 
-## HTML Comment Marker Format
+## Comment Marker Format
 
+Use the appropriate comment syntax for the file type.
+
+**HTML / template files:**
 ```html
 <!-- accessibility-fix: issue-[number] - [Brief description] -->
 [code that needs fixing]
 <!-- /accessibility-fix -->
+```
 
+**JSX / TSX files:**
+```jsx
+{/* accessibility-fix: issue-[number] - [Brief description] */}
+[code that needs fixing]
+{/* /accessibility-fix */}
 ```
 
 For fixed issues:
 
+**HTML / template files:**
 ```html
 <!-- accessibility-fixed: issue-[number] - [Date fixed] -->
 [corrected code]
 <!-- /accessibility-fixed -->
+```
 
+**JSX / TSX files:**
+```jsx
+{/* accessibility-fixed: issue-[number] - [Date fixed] */}
+[corrected code]
+{/* /accessibility-fixed */}
 ```
 
 ## Tools Integration
