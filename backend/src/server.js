@@ -52,6 +52,10 @@ app.get("/skills/graph", async (req, res) => {
 // POST /skills – register a new skill (stub; wire to DB in production)
 app.post("/skills", async (req, res) => {
   const skill = req.body;
+
+  if (skill === null || typeof skill !== "object" || Array.isArray(skill)) {
+    return res.status(400).json({ error: "Request body must be a JSON object" });
+  }
   const required = skillSchema.required;
   const missing = required.filter((k) => !skill[k]);
 
