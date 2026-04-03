@@ -1,0 +1,17 @@
+replicaCount: 1
+
+image:
+  repository: leapxo/orchestrator
+  tag: v2.1
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+
+service:
+  port: 4000

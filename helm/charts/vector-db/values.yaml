@@ -1,0 +1,12 @@
+enabled: true
+type: hnsw
+dimensions: 768
+
+image:
+  repository: leapxo/vector-db
+  tag: v2.1
+  pullPolicy: IfNotPresent
+
+persistence:
+  enabled: true
+  size: 10Gi

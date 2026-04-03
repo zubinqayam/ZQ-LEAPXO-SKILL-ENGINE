@@ -1,0 +1,5 @@
+apiVersion: v2
+name: registry
+description: LEAPXO Skill Registry service
+type: application
+version: 0.1.0
