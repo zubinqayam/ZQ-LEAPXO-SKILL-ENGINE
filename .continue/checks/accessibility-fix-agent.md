@@ -35,6 +35,21 @@ For each new accessibility issue:
 
 ### 4. Comment Marking
 
+Add comment markers to affected code locations. Use the appropriate syntax for the file type:
+
+**HTML / template files:**
+```html
+<!-- accessibility-fix: issue-[number] - Brief description -->
+[problematic code]
+<!-- /accessibility-fix -->
+```
+
+**JSX / TSX files:**
+```jsx
+{/* accessibility-fix: issue-[number] - Brief description */}
+[problematic code]
+{/* /accessibility-fix */}
+```
 Add comment markers to affected code locations using syntax appropriate for the file type:
 
 - **HTML/template files**
@@ -344,6 +359,11 @@ Severity: [Critical/High/Medium/Low]
 
 ```
 
+## Comment Marker Format
+
+Use the appropriate comment syntax for the file type.
+
+**HTML / template files:**
 ## Code Marker Format
 
 Use the comment syntax appropriate for the file type when marking accessibility issues.
@@ -356,6 +376,7 @@ Use the comment syntax appropriate for the file type when marking accessibility 
 <!-- /accessibility-fix -->
 ```
 
+**JSX / TSX files:**
 **JSX/TSX files:**
 
 ```jsx
