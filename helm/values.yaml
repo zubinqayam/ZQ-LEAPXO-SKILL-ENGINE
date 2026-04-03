@@ -73,14 +73,8 @@ vectorDB:
     enabled: true
     size: 10Gi
 
-postgresql:
-  enabled: true
-  auth:
-    database: leapxo
-    existingSecret: leapxo-pg-secret
-  primary:
-    persistence:
-      size: 20Gi
+# PostgreSQL values are intentionally omitted until this chart declares
+# and wires a PostgreSQL dependency or templates that consume them.
 
 security:
   ecdsa: true
