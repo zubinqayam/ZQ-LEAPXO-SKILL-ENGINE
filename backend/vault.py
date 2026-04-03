@@ -16,19 +16,18 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Environment variable names
 # ---------------------------------------------------------------------------
-_ENV_DB_KEY        = "LEAPXO_DB_KEY"
-_ENV_API_KEY       = "LEAPXO_API_KEY"          # LLM provider key
-_ENV_REDIS_URL     = "LEAPXO_REDIS_URL"
-_ENV_SECRET_KEY    = "LEAPXO_SECRET_KEY"        # JWT / HMAC signing key
-_ENV_VAULT_TOKEN   = "LEAPXO_VAULT_TOKEN"       # HashiCorp / Tauri Stronghold token
-_ENV_FEEDBACK_KEY  = "LEAPXO_FEEDBACK_ENC_KEY"  # Feedback chatbot keyhole key
+_ENV_DB_KEY = "LEAPXO_DB_KEY"
+_ENV_API_KEY = "LEAPXO_API_KEY"  # LLM provider key
+_ENV_REDIS_URL = "LEAPXO_REDIS_URL"
+_ENV_SECRET_KEY = "LEAPXO_SECRET_KEY"  # JWT / HMAC signing key
+_ENV_VAULT_TOKEN = "LEAPXO_VAULT_TOKEN"  # HashiCorp / Tauri Stronghold token
+_ENV_FEEDBACK_KEY = "LEAPXO_FEEDBACK_ENC_KEY"  # Feedback chatbot keyhole key
 
 # Path for Kubernetes secret file mounts (optional; env vars take precedence)
 _SECRET_FILE_DIR = Path(os.environ.get("LEAPXO_SECRET_DIR", "/run/secrets/leapxo"))
@@ -47,12 +46,12 @@ class VaultManager:
     # Internal helpers
     # ------------------------------------------------------------------
     @staticmethod
-    def _read_env(name: str) -> Optional[str]:
+    def _read_env(name: str) -> str | None:
         value = os.environ.get(name, "").strip()
         return value if value else None
 
     @staticmethod
-    def _read_file(filename: str) -> Optional[str]:
+    def _read_file(filename: str) -> str | None:
         path = _SECRET_FILE_DIR / filename
         try:
             content = path.read_text().strip()
@@ -60,7 +59,7 @@ class VaultManager:
         except (FileNotFoundError, PermissionError):
             return None
 
-    def _get(self, env_name: str, file_name: str) -> Optional[str]:
+    def _get(self, env_name: str, file_name: str) -> str | None:
         """
         Read a secret — environment variable takes precedence over file mount.
         Returns None when the secret is not configured (caller decides whether
@@ -132,7 +131,7 @@ class VaultManager:
             return ""
         return key
 
-    def vault_token(self) -> Optional[str]:
+    def vault_token(self) -> str | None:
         """Optional HashiCorp Vault / Tauri Stronghold token for dynamic secrets."""
         return self._get(_ENV_VAULT_TOKEN, "vault-token")
 
@@ -142,13 +141,13 @@ class VaultManager:
     def summary(self) -> dict:
         """Return a safe summary (no secret values) for health/status endpoints."""
         return {
-            "db_key_set":       bool(self._get(_ENV_DB_KEY, "db-key")),
-            "api_key_set":      bool(self._get(_ENV_API_KEY, "api-key")),
-            "redis_url_set":    bool(self._get(_ENV_REDIS_URL, "redis-url")),
-            "secret_key_set":   bool(self._get(_ENV_SECRET_KEY, "secret-key")),
-            "vault_token_set":  bool(self._get(_ENV_VAULT_TOKEN, "vault-token")),
+            "db_key_set": bool(self._get(_ENV_DB_KEY, "db-key")),
+            "api_key_set": bool(self._get(_ENV_API_KEY, "api-key")),
+            "redis_url_set": bool(self._get(_ENV_REDIS_URL, "redis-url")),
+            "secret_key_set": bool(self._get(_ENV_SECRET_KEY, "secret-key")),
+            "vault_token_set": bool(self._get(_ENV_VAULT_TOKEN, "vault-token")),
             "feedback_key_set": bool(self._get(_ENV_FEEDBACK_KEY, "feedback-enc-key")),
-            "environment":      os.environ.get("LEAPXO_ENV", "development"),
+            "environment": os.environ.get("LEAPXO_ENV", "development"),
         }
 
 

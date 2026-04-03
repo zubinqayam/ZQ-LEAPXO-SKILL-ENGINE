@@ -10,9 +10,7 @@ Covers:
 - FastAPI endpoint contracts (/healthz, /readyz, /vault/status, /telemetry)
 """
 
-import asyncio
 import os
-import tempfile
 import time
 
 import pytest
@@ -25,32 +23,38 @@ from pydantic import ValidationError
 class TestRegisterAgentRequestValidation:
     def test_valid_label(self):
         from backend.main import RegisterAgentRequest
+
         req = RegisterAgentRequest(label="my-agent", initial_trust=0.9)
         assert req.label == "my-agent"
         assert req.initial_trust == 0.9
 
     def test_blank_label_raises(self):
         from backend.main import RegisterAgentRequest
+
         with pytest.raises(ValidationError):
             RegisterAgentRequest(label="   ", initial_trust=1.0)
 
     def test_label_stripped(self):
         from backend.main import RegisterAgentRequest
+
         req = RegisterAgentRequest(label="  trimmed  ", initial_trust=1.0)
         assert req.label == "trimmed"
 
     def test_trust_above_one_raises(self):
         from backend.main import RegisterAgentRequest
+
         with pytest.raises(ValidationError):
             RegisterAgentRequest(label="x", initial_trust=1.5)
 
     def test_trust_below_zero_raises(self):
         from backend.main import RegisterAgentRequest
+
         with pytest.raises(ValidationError):
             RegisterAgentRequest(label="x", initial_trust=-0.1)
 
     def test_extra_field_raises(self):
         from backend.main import RegisterAgentRequest
+
         with pytest.raises(ValidationError):
             RegisterAgentRequest(label="x", initial_trust=1.0, hacked="payload")
 
@@ -58,26 +62,31 @@ class TestRegisterAgentRequestValidation:
 class TestScheduleTaskRequestValidation:
     def test_valid(self):
         from backend.main import ScheduleTaskRequest
+
         req = ScheduleTaskRequest(model_hash="abc123", prompt="hello", priority=3)
         assert req.priority == 3
 
     def test_priority_too_low_raises(self):
         from backend.main import ScheduleTaskRequest
+
         with pytest.raises(ValidationError):
             ScheduleTaskRequest(model_hash="abc", prompt="x", priority=0)
 
     def test_priority_too_high_raises(self):
         from backend.main import ScheduleTaskRequest
+
         with pytest.raises(ValidationError):
             ScheduleTaskRequest(model_hash="abc", prompt="x", priority=11)
 
     def test_prompt_too_long_raises(self):
         from backend.main import ScheduleTaskRequest
+
         with pytest.raises(ValidationError):
             ScheduleTaskRequest(model_hash="abc", prompt="x" * 4097, priority=5)
 
     def test_extra_field_raises(self):
         from backend.main import ScheduleTaskRequest
+
         with pytest.raises(ValidationError):
             ScheduleTaskRequest(model_hash="abc", prompt="x", priority=1, evil="field")
 
@@ -85,21 +94,25 @@ class TestScheduleTaskRequestValidation:
 class TestTelemetryRequestValidation:
     def test_valid(self):
         from backend.main import TelemetryRequest
+
         req = TelemetryRequest(metric_name="cpu.usage", value=0.75)
         assert req.metric_name == "cpu.usage"
 
     def test_metric_name_special_chars_raises(self):
         from backend.main import TelemetryRequest
+
         with pytest.raises(ValidationError):
             TelemetryRequest(metric_name="bad metric!", value=1.0)
 
     def test_labels_too_long_raises(self):
         from backend.main import TelemetryRequest
+
         with pytest.raises(ValidationError):
             TelemetryRequest(metric_name="m", value=1.0, labels="x" * 513)
 
     def test_extra_field_raises(self):
         from backend.main import TelemetryRequest
+
         with pytest.raises(ValidationError):
             TelemetryRequest(metric_name="m", value=1.0, injected="evil")
 
@@ -110,14 +123,13 @@ class TestTelemetryRequestValidation:
 class TestDynamicPort:
     def test_default_port(self, monkeypatch):
         monkeypatch.delenv("PORT", raising=False)
-        import importlib
         import backend.main as bm
+
         # PORT is module-level constant; verify it falls back to 8000
-        assert bm.PORT == int(os.environ.get("PORT", "8000"))
+        assert int(os.environ.get("PORT", "8000")) == bm.PORT
 
     def test_custom_port(self, monkeypatch):
         monkeypatch.setenv("PORT", "9001")
-        import importlib
         # Re-evaluating the expression, not re-importing (module already loaded)
         assert int(os.environ.get("PORT", "8000")) == 9001
 
@@ -130,6 +142,7 @@ class TestTelemetryRateLimit:
     async def test_within_limit_passes(self, monkeypatch):
         monkeypatch.setenv("LEAPXO_TELEMETRY_RATE_LIMIT", "5")
         from backend import main as bm
+
         bm._telemetry_window.clear()
         # Allow 5 requests
         for _ in range(5):
@@ -137,13 +150,14 @@ class TestTelemetryRateLimit:
 
     @pytest.mark.asyncio
     async def test_over_limit_raises(self, monkeypatch):
-        from fastapi import HTTPException
         from backend import main as bm
+        from fastapi import HTTPException
+
         bm._telemetry_window.clear()
         # Fill the window
         ip = "10.0.0.99"
         now = time.monotonic()
-        bm._telemetry_window[ip] = __import__('collections').deque(
+        bm._telemetry_window[ip] = __import__("collections").deque(
             [now - i * 0.1 for i in range(60)]
         )
         with pytest.raises(HTTPException) as exc_info:
@@ -153,9 +167,10 @@ class TestTelemetryRateLimit:
     @pytest.mark.asyncio
     async def test_old_entries_evicted(self):
         from backend import main as bm
+
         ip = "192.168.1.1"
         # Add 60 entries older than 60 seconds
-        bm._telemetry_window[ip] = __import__('collections').deque(
+        bm._telemetry_window[ip] = __import__("collections").deque(
             [time.monotonic() - 61 for _ in range(60)]
         )
         # Should not raise — old entries are evicted
@@ -169,12 +184,14 @@ class TestVaultManager:
     def test_db_key_from_env(self, monkeypatch):
         monkeypatch.setenv("LEAPXO_DB_KEY", "mysecretkey")
         from backend.vault import VaultManager
+
         vm = VaultManager()
         assert vm.db_key() == "mysecretkey"
 
     def test_db_key_empty_when_unset(self, monkeypatch):
         monkeypatch.delenv("LEAPXO_DB_KEY", raising=False)
         from backend.vault import VaultManager
+
         vm = VaultManager()
         assert vm.db_key() == ""
 
@@ -182,6 +199,7 @@ class TestVaultManager:
         monkeypatch.setenv("LEAPXO_ENV", "production")
         monkeypatch.delenv("LEAPXO_API_KEY", raising=False)
         from backend.vault import VaultManager
+
         vm = VaultManager()
         with pytest.raises(RuntimeError, match="API key"):
             vm.api_key()
@@ -190,6 +208,7 @@ class TestVaultManager:
         monkeypatch.setenv("LEAPXO_ENV", "development")
         monkeypatch.delenv("LEAPXO_SECRET_KEY", raising=False)
         from backend.vault import VaultManager
+
         vm = VaultManager()
         key = vm.secret_key()
         assert "dev-insecure" in key
@@ -198,6 +217,7 @@ class TestVaultManager:
         monkeypatch.setenv("LEAPXO_ENV", "production")
         monkeypatch.delenv("LEAPXO_SECRET_KEY", raising=False)
         from backend.vault import VaultManager
+
         vm = VaultManager()
         with pytest.raises(RuntimeError, match="Secret key"):
             vm.secret_key()
@@ -206,6 +226,7 @@ class TestVaultManager:
         monkeypatch.setenv("LEAPXO_DB_KEY", "top-secret")
         monkeypatch.setenv("LEAPXO_API_KEY", "sk-secret")
         from backend.vault import VaultManager
+
         vm = VaultManager()
         summary = vm.summary()
         # Values must be booleans (or the environment string), not actual key strings
@@ -213,8 +234,9 @@ class TestVaultManager:
             if key == "environment":
                 assert isinstance(val, str)
             else:
-                assert isinstance(val, bool), \
+                assert isinstance(val, bool), (
                     f"Summary field '{key}' should be a boolean, got {type(val).__name__}: {val!r}"
+                )
         assert summary["db_key_set"] is True
         assert summary["api_key_set"] is True
 
@@ -226,6 +248,7 @@ class TestDatabase:
     @pytest.fixture
     def db(self, tmp_path):
         from backend.db import Database
+
         d = Database(str(tmp_path / "test.db"))
         d.connect()
         yield d
@@ -237,9 +260,7 @@ class TestDatabase:
         assert mode == "wal"
 
     def test_tables_created(self, db):
-        cur = db._conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
+        cur = db._conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         tables = {row[0] for row in cur.fetchall()}
         assert {"agents", "audit_events", "telemetry"} <= tables
 
@@ -301,9 +322,7 @@ class TestDatabase:
     @pytest.mark.asyncio
     async def test_audit_event(self, db):
         await db.audit("test_event", "hash6", "payload data")
-        rows = await db.fetchall(
-            "SELECT * FROM audit_events WHERE event_type = ?", ("test_event",)
-        )
+        rows = await db.fetchall("SELECT * FROM audit_events WHERE event_type = ?", ("test_event",))
         assert len(rows) == 1
         assert rows[0]["payload"] == "payload data"
 
@@ -314,6 +333,7 @@ class TestDatabase:
 
     def test_close_and_reopen(self, tmp_path):
         from backend.db import Database
+
         path = str(tmp_path / "persist.db")
         d = Database(path)
         d.connect()
@@ -321,9 +341,7 @@ class TestDatabase:
         # Reopen and verify tables still exist
         d2 = Database(path)
         d2.connect()
-        cur = d2._conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
+        cur = d2._conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         tables = {row[0] for row in cur.fetchall()}
         assert "agents" in tables
         d2.close()
@@ -332,6 +350,7 @@ class TestDatabase:
 class TestDatabaseSingleton:
     def test_get_db_raises_before_init(self, monkeypatch):
         import backend.db as db_mod
+
         original = db_mod._db
         db_mod._db = None
         try:
@@ -342,6 +361,7 @@ class TestDatabaseSingleton:
 
     def test_init_db_returns_database(self, tmp_path):
         import backend.db as db_mod
+
         original = db_mod._db
         try:
             db = db_mod.init_db(str(tmp_path / "singleton.db"))

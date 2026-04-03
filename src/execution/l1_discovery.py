@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 try:
     import numpy as np
+
     _NUMPY_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _NUMPY_AVAILABLE = False
@@ -28,13 +28,12 @@ except ImportError:  # pragma: no cover
 
 from src.core.exceptions import SkillNotFoundError
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 TOP_K = 3
-SIMILARITY_REVIEW_LOW = 0.85   # Below this → reject (too dissimilar)
+SIMILARITY_REVIEW_LOW = 0.85  # Below this → reject (too dissimilar)
 SIMILARITY_REVIEW_HIGH = 0.95  # In [low, high) → flag for human review
 SIMILARITY_AUTO_ACCEPT = 0.95  # Above this → auto-accept
 
@@ -42,6 +41,7 @@ SIMILARITY_AUTO_ACCEPT = 0.95  # Above this → auto-accept
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SkillCandidate:
@@ -57,11 +57,12 @@ class SkillCandidate:
 # Alias map
 # ---------------------------------------------------------------------------
 
+
 class AliasMap:
     """Tracks renamed/merged skills and transparently redirects lookups."""
 
     def __init__(self) -> None:
-        self._aliases: Dict[str, str] = {}
+        self._aliases: dict[str, str] = {}
 
     def register(self, old_id: str, new_id: str) -> None:
         self._aliases[old_id] = new_id
@@ -80,6 +81,7 @@ class AliasMap:
 # L1 Discovery
 # ---------------------------------------------------------------------------
 
+
 class L1Discovery:
     """Retrieves the top-K most relevant skills for a given query embedding.
 
@@ -89,15 +91,15 @@ class L1Discovery:
 
     def __init__(
         self,
-        alias_map: Optional[AliasMap] = None,
+        alias_map: AliasMap | None = None,
         top_k: int = TOP_K,
     ) -> None:
         self._alias_map = alias_map or AliasMap()
         self._top_k = top_k
         # Index: skill_id → (embedding, metadata_dict)
-        self._index: Dict[str, Tuple[list, dict]] = {}
+        self._index: dict[str, tuple[list, dict]] = {}
         # Semantic cache: query_hash → list[SkillCandidate]
-        self._cache: Dict[str, list[SkillCandidate]] = {}
+        self._cache: dict[str, list[SkillCandidate]] = {}
 
     # ------------------------------------------------------------------
     # Index management
@@ -134,12 +136,12 @@ class L1Discovery:
         if _NUMPY_AVAILABLE:
             va = np.array(a, dtype=np.float32)
             vb = np.array(b, dtype=np.float32)
-            denom = (np.linalg.norm(va) * np.linalg.norm(vb))
+            denom = np.linalg.norm(va) * np.linalg.norm(vb)
             if denom == 0:
                 return 0.0
             return float(np.dot(va, vb) / denom)
         # Pure-Python fallback
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         norm_a = math.sqrt(sum(x * x for x in a))
         norm_b = math.sqrt(sum(x * x for x in b))
         if norm_a == 0 or norm_b == 0:
@@ -155,7 +157,7 @@ class L1Discovery:
         query_embedding: list[float],
         *,
         region_code: str = "GL",
-        cache_key: Optional[str] = None,
+        cache_key: str | None = None,
     ) -> list[SkillCandidate]:
         """Return up to top_k matching skills, filtered and deduplicated.
 
@@ -187,9 +189,7 @@ class L1Discovery:
             scored.append((score, skill_id, meta))
 
         if not scored:
-            raise SkillNotFoundError(
-                f"No skills available for region '{region_code}'."
-            )
+            raise SkillNotFoundError(f"No skills available for region '{region_code}'.")
 
         # Sort descending by score
         scored.sort(key=lambda x: x[0], reverse=True)
