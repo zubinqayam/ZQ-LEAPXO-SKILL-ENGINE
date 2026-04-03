@@ -5,7 +5,7 @@ metadata:
   labels:
     app: orchestrator
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ default 1 (default .Values.global.replicaCount .Values.replicaCount) }}
   selector:
     matchLabels:
       app: orchestrator
