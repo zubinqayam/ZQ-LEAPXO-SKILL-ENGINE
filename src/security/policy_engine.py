@@ -10,45 +10,47 @@ Responsibilities:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, Optional, Set
+from dataclasses import dataclass
 
 from src.core.exceptions import PolicyViolationError
-
 
 # ---------------------------------------------------------------------------
 # Immutable P0 policy definitions (never modified at runtime)
 # ---------------------------------------------------------------------------
 
 # Regions where medical skills require additional compliance checks.
-_MEDICAL_COMPLIANCE_REGIONS: FrozenSet[str] = frozenset({
-    "OM",  # Oman
-    "SA",  # Saudi Arabia
-    "AE",  # UAE
-    "KW",  # Kuwait
-    "QA",  # Qatar
-    "BH",  # Bahrain
-    "EG",  # Egypt
-    "US",  # USA (HIPAA)
-    "EU",  # European Union (GDPR)
-    "GB",  # UK
-    "DE",  # Germany
-    "FR",  # France
-})
+_MEDICAL_COMPLIANCE_REGIONS: frozenset[str] = frozenset(
+    {
+        "OM",  # Oman
+        "SA",  # Saudi Arabia
+        "AE",  # UAE
+        "KW",  # Kuwait
+        "QA",  # Qatar
+        "BH",  # Bahrain
+        "EG",  # Egypt
+        "US",  # USA (HIPAA)
+        "EU",  # European Union (GDPR)
+        "GB",  # UK
+        "DE",  # Germany
+        "FR",  # France
+    }
+)
 
 # Skill categories that require medical compliance in the above regions.
-_MEDICAL_SKILL_TAGS: FrozenSet[str] = frozenset({
-    "medical",
-    "clinical",
-    "diagnosis",
-    "triage",
-    "prescription",
-    "health",
-    "pharma",
-})
+_MEDICAL_SKILL_TAGS: frozenset[str] = frozenset(
+    {
+        "medical",
+        "clinical",
+        "diagnosis",
+        "triage",
+        "prescription",
+        "health",
+        "pharma",
+    }
+)
 
 # Regions where certain skill categories are fully blocked.
-_REGION_BLOCKED_CATEGORIES: Dict[str, FrozenSet[str]] = {
+_REGION_BLOCKED_CATEGORIES: dict[str, frozenset[str]] = {
     # Example: no financial-advice skills in these sandboxed regions.
     "GL": frozenset(),
 }
@@ -57,6 +59,7 @@ _REGION_BLOCKED_CATEGORIES: Dict[str, FrozenSet[str]] = {
 # ---------------------------------------------------------------------------
 # Policy dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class PolicyDecision:
@@ -70,6 +73,7 @@ class PolicyDecision:
 # Policy Engine
 # ---------------------------------------------------------------------------
 
+
 class PolicyEngine:
     """Evaluates whether a (skill, region) combination is allowed.
 
@@ -78,11 +82,11 @@ class PolicyEngine:
 
     def __init__(
         self,
-        extra_blocked: Optional[Dict[str, Set[str]]] = None,
+        extra_blocked: dict[str, set[str]] | None = None,
     ) -> None:
         # Additional runtime blocks can be injected (e.g., from config),
         # but CANNOT override the hardcoded _MEDICAL_COMPLIANCE_REGIONS.
-        self._extra_blocked: Dict[str, Set[str]] = extra_blocked or {}
+        self._extra_blocked: dict[str, set[str]] = extra_blocked or {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -124,9 +128,7 @@ class PolicyEngine:
         # --- Medical compliance check ---
         tags_lower = {t.lower() for t in skill_tags}
         is_medical = bool(tags_lower & _MEDICAL_SKILL_TAGS)
-        needs_compliance = (
-            is_medical and request_region_code in _MEDICAL_COMPLIANCE_REGIONS
-        )
+        needs_compliance = is_medical and request_region_code in _MEDICAL_COMPLIANCE_REGIONS
 
         # --- Extra blocked categories check ---
         blocked_for_region = self._extra_blocked.get(request_region_code, set())

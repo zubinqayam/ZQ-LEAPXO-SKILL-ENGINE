@@ -20,14 +20,14 @@ import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 from src.core.exceptions import SandboxExecutionError
-
 
 # ---------------------------------------------------------------------------
 # Execution result
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ExecutionResult:
@@ -36,13 +36,14 @@ class ExecutionResult:
     output: Any
     latency_ms: float
     token_usage: int = 0
-    error: Optional[str] = None
-    sandbox_metadata: Dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    sandbox_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
 # Abstract executor
 # ---------------------------------------------------------------------------
+
 
 class BaseL3Executor(ABC):
     """Abstract base class for L3 sandboxed executors."""
@@ -54,7 +55,7 @@ class BaseL3Executor(ABC):
         instructions: list[dict],
         user_input: str,
         *,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> ExecutionResult:
         """Execute the skill and return a structured result."""
 
@@ -63,13 +64,14 @@ class BaseL3Executor(ABC):
 # Sandbox descriptor (metadata passed to container runtimes)
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class SandboxPolicy:
     """Immutable sandbox security policy for a skill execution."""
 
     no_network: bool = True
     read_only_fs: bool = True
-    no_exec: bool = True           # noexec mount flag
+    no_exec: bool = True  # noexec mount flag
     apparmor_profile: str = "leapxo-skill-default"
     no_shared_memory: bool = True
     ipc_via_redis_only: bool = True
@@ -80,6 +82,7 @@ class SandboxPolicy:
 # ---------------------------------------------------------------------------
 # Payload integrity (TOCTOU protection)
 # ---------------------------------------------------------------------------
+
 
 def _compute_payload_hash(
     skill_id: str,
@@ -98,6 +101,7 @@ def _compute_payload_hash(
 # Default in-process executor (for testing / local dev)
 # ---------------------------------------------------------------------------
 
+
 class InProcessL3Executor(BaseL3Executor):
     """Executes skill instructions in-process (no real isolation).
 
@@ -111,7 +115,7 @@ class InProcessL3Executor(BaseL3Executor):
         instructions: list[dict],
         user_input: str,
         *,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> ExecutionResult:
         start = time.monotonic()
 
@@ -120,13 +124,9 @@ class InProcessL3Executor(BaseL3Executor):
 
         try:
             # Simulate execution: concatenate non-empty instruction content.
-            contents = [
-                i["content"] for i in instructions if i.get("content")
-            ]
+            contents = [i["content"] for i in instructions if i.get("content")]
             if not contents:
-                raise SandboxExecutionError(
-                    f"Skill '{skill_id}' has no executable instructions."
-                )
+                raise SandboxExecutionError(f"Skill '{skill_id}' has no executable instructions.")
 
             # Post-execution integrity check
             post_hash = _compute_payload_hash(skill_id, instructions, user_input)

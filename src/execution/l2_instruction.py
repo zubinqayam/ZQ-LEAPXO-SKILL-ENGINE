@@ -15,20 +15,18 @@ Contract:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from src.core.token_predictor import predict_tokens, prune_instructions
-from src.core.exceptions import TokenBudgetExceededError
-
 
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LoadedInstructions:
     skill_id: str
-    instructions: List[dict]
+    instructions: list[dict]
     token_estimate: int
     was_pruned: bool
 
@@ -36,6 +34,7 @@ class LoadedInstructions:
 # ---------------------------------------------------------------------------
 # L2 Loader
 # ---------------------------------------------------------------------------
+
 
 class L2InstructionLoader:
     """Loads and prunes instructions for a given skill.
@@ -53,13 +52,13 @@ class L2InstructionLoader:
         self._context_window = context_window
         self._reserved_tokens = reserved_tokens
         # Raw store: skill_id → list of instruction dicts
-        self._store: Dict[str, List[dict]] = {}
+        self._store: dict[str, list[dict]] = {}
 
     # ------------------------------------------------------------------
     # Store management
     # ------------------------------------------------------------------
 
-    def register_instructions(self, skill_id: str, instructions: List[dict]) -> None:
+    def register_instructions(self, skill_id: str, instructions: list[dict]) -> None:
         """Store raw instructions for *skill_id*."""
         self._store[skill_id] = list(instructions)
 
