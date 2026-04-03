@@ -79,26 +79,33 @@ vectorDB:
 security:
   ecdsa: true
   tlsEnabled: true
-  networkPolicy:
-    enabled: true
+  # Placeholder only: `security.networkPolicy` is not currently referenced by any
+  # chart template in this chart/subcharts. Uncomment when NetworkPolicy support
+  # is implemented.
+  # networkPolicy:
+  #   enabled: true
 
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-  hosts:
-    - host: leapxo.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: leapxo-tls
-      hosts:
-        - leapxo.example.com
+# Placeholder only: `ingress` is not currently referenced by any chart template
+# in this chart/subcharts. Uncomment when ingress resources are implemented.
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#   hosts:
+#     - host: leapxo.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: leapxo-tls
+#       hosts:
+#         - leapxo.example.com
 
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+# Placeholder only: `autoscaling` is not currently referenced by any chart
+# template in this chart/subcharts. Uncomment when HPA support is implemented.
+# autoscaling:
+#   enabled: true
+#   minReplicas: 2
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 70
