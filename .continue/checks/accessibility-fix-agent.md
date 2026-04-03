@@ -50,6 +50,39 @@ Add comment markers to affected code locations. Use the appropriate syntax for t
 [problematic code]
 {/* /accessibility-fix */}
 ```
+Add comment markers to affected code locations using syntax appropriate for the file type:
+
+- **HTML/template files**
+
+  ```html
+  <!-- accessibility-fix: issue-[number] - Brief description -->
+  [problematic code]
+  <!-- /accessibility-fix -->
+  ```
+
+- **JSX/TSX files**
+
+  ```jsx
+  {/* accessibility-fix: issue-[number] - Brief description */}
+  [problematic code]
+  {/* /accessibility-fix */}
+  ```
+
+- **JavaScript/TypeScript files**
+
+  ```ts
+  // accessibility-fix: issue-[number] - Brief description
+  [problematic code]
+  // /accessibility-fix
+  ```
+
+- **CSS files**
+
+  ```css
+  /* accessibility-fix: issue-[number] - Brief description */
+  [problematic code]
+  /* /accessibility-fix */
+  ```
 
 ## Triage System
 
@@ -73,10 +106,10 @@ Add comment markers to affected code locations. Use the appropriate syntax for t
 
 **Detection:**
 
-- Interactive elements without keyboard support (missing `tabindex` in HTML / `tabIndex` in JSX/TSX, `onKeyDown`)
+- Interactive elements without keyboard support (missing `tabIndex`/`tabindex`, `onKeyDown`)
 - `<div>` or `<span>` used as buttons without proper ARIA roles
 - Focus trap in modals without proper management
-- Positive `tabindex` values (anti-pattern)
+- Positive `tabIndex`/`tabindex` values (anti-pattern)
 - Missing visible focus indicators (`:focus` styles)
 
 **Impact:** Keyboard-only users cannot access functionality
@@ -86,7 +119,8 @@ Add comment markers to affected code locations. Use the appropriate syntax for t
 - Use semantic HTML (`<button>`, `<a>`)
 - Add `role="button"` and keyboard event handlers if needed
 - Implement focus management for modals
-- Use `tabindex="0"` (HTML) / `tabIndex={0}` (JSX/TSX) or `"-1"` / `{-1}`, never positive values
+- In HTML: use `tabindex="0"` or `tabindex="-1"`, never positive values
+- In JSX/TSX: use `tabIndex={0}` or `tabIndex={-1}`, never positive values
 - Ensure `:focus` and `:focus-visible` styles exist
 
 ### Category 3: Form Accessibility (WCAG A - High)
@@ -330,6 +364,12 @@ Severity: [Critical/High/Medium/Low]
 Use the appropriate comment syntax for the file type.
 
 **HTML / template files:**
+## Code Marker Format
+
+Use the comment syntax appropriate for the file type when marking accessibility issues.
+
+**HTML/template files:**
+
 ```html
 <!-- accessibility-fix: issue-[number] - [Brief description] -->
 [code that needs fixing]
@@ -337,26 +377,62 @@ Use the appropriate comment syntax for the file type.
 ```
 
 **JSX / TSX files:**
+**JSX/TSX files:**
+
 ```jsx
 {/* accessibility-fix: issue-[number] - [Brief description] */}
 [code that needs fixing]
 {/* /accessibility-fix */}
 ```
 
-For fixed issues:
+**JavaScript/TypeScript files:**
 
-**HTML / template files:**
+```ts
+// accessibility-fix: issue-[number] - [Brief description]
+[code that needs fixing]
+// /accessibility-fix
+```
+
+**CSS files:**
+
+```css
+/* accessibility-fix: issue-[number] - [Brief description] */
+[code that needs fixing]
+/* /accessibility-fix */
+```
+
+For fixed issues, use the corresponding `accessibility-fixed` marker with the same syntax:
+
+**HTML/template files:**
+
 ```html
 <!-- accessibility-fixed: issue-[number] - [Date fixed] -->
 [corrected code]
 <!-- /accessibility-fixed -->
 ```
 
-**JSX / TSX files:**
+**JSX/TSX files:**
+
 ```jsx
 {/* accessibility-fixed: issue-[number] - [Date fixed] */}
 [corrected code]
 {/* /accessibility-fixed */}
+```
+
+**JavaScript/TypeScript files:**
+
+```ts
+// accessibility-fixed: issue-[number] - [Date fixed]
+[corrected code]
+// /accessibility-fixed
+```
+
+**CSS files:**
+
+```css
+/* accessibility-fixed: issue-[number] - [Date fixed] */
+[corrected code]
+/* /accessibility-fixed */
 ```
 
 ## Tools Integration
