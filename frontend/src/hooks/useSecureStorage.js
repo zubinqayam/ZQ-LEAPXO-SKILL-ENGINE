@@ -25,15 +25,18 @@ const isTauri = () =>
 // Tauri Stronghold helpers (dynamically imported so the bundle works in
 // non-Tauri environments where the plugin is not available)
 // ---------------------------------------------------------------------------
-let _strongholdClient = null
+const _strongholdClients = new Map()
 
 async function _getStrongholdClient(vaultPath, password) {
-  if (_strongholdClient) return _strongholdClient
+  const cacheKey = JSON.stringify([vaultPath ?? null, password ?? null])
+  const cachedClient = _strongholdClients.get(cacheKey)
+  if (cachedClient) return cachedClient
   try {
     const { Client, Stronghold } = await import('@tauri-apps/plugin-stronghold')
     const stronghold = await Stronghold.load(vaultPath, password)
-    _strongholdClient = await stronghold.loadClient('leapxo-vault')
-    return _strongholdClient
+    const client = await stronghold.loadClient('leapxo-vault')
+    _strongholdClients.set(cacheKey, client)
+    return client
   } catch (err) {
     console.warn('[useSecureStorage] Stronghold unavailable:', err.message)
     return null
