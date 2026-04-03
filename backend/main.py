@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 from backend.db import init_db, close_db, get_db
 from backend.vault import get_vault
