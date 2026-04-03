@@ -1,0 +1,26 @@
+# Dockerfile.frontend — LeapXO v9 React frontend (nginx)
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --silent
+
+COPY . .
+RUN npm run build
+
+# ── Production image ──────────────────────────────────────────────
+FROM nginx:1.27-alpine AS production
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# nginx.conf template — BACKEND_PORT is substituted at container startup
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# Set default backend port; override via BACKEND_PORT env var
+ENV BACKEND_PORT=8000
+
+EXPOSE 80
+
+# nginx-docker automatically runs envsubst on files in /etc/nginx/templates/
+CMD ["nginx", "-g", "daemon off;"]

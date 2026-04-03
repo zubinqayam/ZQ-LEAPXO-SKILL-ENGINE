@@ -1,13 +1,19 @@
 import asyncio
 import hashlib
+import os
+import time
 from collections import deque
+from contextlib import asynccontextmanager
 import heapq
 import random
 from typing import Dict, Any, Optional, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+
+from backend.db import init_db, close_db, get_db
+from backend.vault import get_vault
 
 # -----------------------------
 # Configuration constants
@@ -19,6 +25,34 @@ ADVERSARIAL_FAILURE_RATE = 0.3
 ADAPTIVE_THRESHOLD_FACTOR = 0.05
 FAILURE_WINDOW_SIZE = 50
 TRUST_DECAY_FACTOR = 0.9
+
+# Dynamic port — read from environment (Tauri sidecar / container / K8s)
+PORT: int = int(os.environ.get("PORT", "8000"))
+
+# Telemetry rate limit: max requests per minute per client IP
+TELEMETRY_RATE_LIMIT = int(os.environ.get("LEAPXO_TELEMETRY_RATE_LIMIT", "60"))
+
+# ---------------------------------------------------------------------------
+# Telemetry rate limiter (in-process, per-IP sliding window)
+# ---------------------------------------------------------------------------
+_telemetry_window: Dict[str, deque] = {}
+_telemetry_lock = asyncio.Lock()
+
+
+async def _check_telemetry_rate(client_ip: str) -> None:
+    """Raise HTTP 429 if the client exceeds TELEMETRY_RATE_LIMIT req/min."""
+    now = time.monotonic()
+    async with _telemetry_lock:
+        window = _telemetry_window.setdefault(client_ip, deque())
+        # Evict entries older than 60 seconds
+        while window and now - window[0] > 60.0:
+            window.popleft()
+        if len(window) >= TELEMETRY_RATE_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Telemetry rate limit exceeded ({TELEMETRY_RATE_LIMIT} req/min).",
+            )
+        window.append(now)
 
 # -----------------------------
 # Embedding & Semantic Similarity
@@ -225,10 +259,20 @@ class Orchestrator:
 # -----------------------------
 orchestrator = Orchestrator()
 
+# ---------------------------------------------------------------------------
+# FastAPI lifespan — open/close DB on startup/shutdown
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+    close_db()
+
+
 # -----------------------------
 # FastAPI app
 # -----------------------------
-app = FastAPI(title="LeapXO Skill Engine", version="3.6.0")
+app = FastAPI(title="LeapXO Skill Engine", version="9.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -237,26 +281,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------- Request / Response models ----------
+# ---------- Request / Response models (strict Pydantic v2) ----------
 
 class RegisterAgentRequest(BaseModel):
-    label: str
-    initial_trust: float = 1.0
+    model_config = {"strict": True, "extra": "forbid"}
+
+    label: str = Field(..., min_length=1, max_length=128)
+    initial_trust: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    @field_validator("label")
+    @classmethod
+    def label_no_whitespace_only(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("label must not be blank")
+        return v.strip()
+
 
 class ScheduleTaskRequest(BaseModel):
-    model_hash: str
-    prompt: str
-    priority: int = 3
+    model_config = {"strict": True, "extra": "forbid"}
+
+    model_hash: str = Field(..., min_length=1, max_length=64)
+    prompt: str = Field(..., min_length=1, max_length=4096)
+    priority: int = Field(default=3, ge=1, le=10)
+
 
 class HumanOverrideRequest(BaseModel):
-    model_hash: str
+    model_config = {"strict": True, "extra": "forbid"}
+
+    model_hash: str = Field(..., min_length=1, max_length=64)
     allow: bool
+
+
+class TelemetryRequest(BaseModel):
+    model_config = {"strict": True, "extra": "forbid"}
+
+    metric_name: str = Field(..., min_length=1, max_length=128)
+    value: float
+    labels: str = Field(default="", max_length=512)
+
+    @field_validator("metric_name")
+    @classmethod
+    def metric_name_safe(cls, v: str) -> str:
+        if not all(c.isalnum() or c in "_.-" for c in v):
+            raise ValueError("metric_name must contain only alphanumeric, _, ., - characters")
+        return v
+
 
 # ---------- Endpoints ----------
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "3.6.0"}
+    return {"status": "ok", "version": "9.0.0"}
+
+
+@app.get("/healthz")
+def healthz():
+    """Kubernetes liveness probe."""
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+def readyz():
+    """Kubernetes readiness probe — verifies DB connection."""
+    try:
+        db = get_db()
+        return {"status": "ready"}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Not ready: {exc}")
+
+
+@app.get("/vault/status")
+def vault_status():
+    """Return vault configuration summary (no secret values)."""
+    return get_vault().summary()
+
 
 @app.post("/agents/register")
 async def register_agent(req: RegisterAgentRequest):
@@ -264,17 +362,23 @@ async def register_agent(req: RegisterAgentRequest):
     weights = req.label.encode()
     dna = SkillDNA(weights, initial_trust=req.initial_trust)
     await orchestrator.registry.register_dna(dna)
+    db = get_db()
+    await db.upsert_agent(dna.model_hash, req.label, dna.trust_score)
+    await db.audit("agent_registered", model_hash=dna.model_hash, payload=req.label)
     return {"model_hash": dna.model_hash, "trust_score": dna.trust_score}
+
 
 @app.get("/agents")
 def list_agents():
     """List all active agents."""
     return {"agents": orchestrator.registry.list_agents()}
 
+
 @app.get("/agents/archived")
 def list_archived():
     """List archived (low-trust) agents."""
     return {"archived": orchestrator.registry.list_archived()}
+
 
 @app.post("/agents/override")
 async def set_override(req: HumanOverrideRequest):
@@ -283,7 +387,14 @@ async def set_override(req: HumanOverrideRequest):
     if not dna:
         raise HTTPException(status_code=404, detail="Agent not found")
     await dna.set_human_override(req.allow)
+    db = get_db()
+    await db.audit(
+        "human_override",
+        model_hash=req.model_hash,
+        payload=f"allow={req.allow}",
+    )
     return {"model_hash": req.model_hash, "human_override": dna.human_override}
+
 
 @app.post("/tasks/schedule")
 async def schedule_task(req: ScheduleTaskRequest):
@@ -294,10 +405,13 @@ async def schedule_task(req: ScheduleTaskRequest):
     await orchestrator.schedule_agent(dna, req.prompt, req.priority)
     return {"queued": True, "queue_length": len(orchestrator.task_queue)}
 
+
 @app.post("/tasks/run")
 async def run_tasks():
     """Execute all queued tasks and return results."""
     results = await orchestrator.run_queue()
+    db = get_db()
+    await db.audit("tasks_run", payload=f"count={len(results)}")
     return {
         "results": results,
         "token_budget_remaining": orchestrator.token_budget,
@@ -305,8 +419,9 @@ async def run_tasks():
         "recursion_heatmap": orchestrator.meta_agent.recursion_heatmap,
     }
 
+
 @app.get("/status")
-def status():
+def get_status():
     """Return orchestrator status snapshot."""
     return {
         "token_budget": orchestrator.token_budget,
@@ -314,4 +429,15 @@ def status():
         "active_agents": len(orchestrator.registry._registry),
         "archived_agents": len(orchestrator.registry._archived),
         "agent_market": orchestrator.agent_market,
+        "version": "9.0.0",
     }
+
+
+@app.post("/telemetry")
+async def record_telemetry(req: TelemetryRequest, request: Request):
+    """Record a telemetry metric (rate-limited per client IP)."""
+    client_ip = request.client.host if request.client else "unknown"
+    await _check_telemetry_rate(client_ip)
+    db = get_db()
+    await db.record_telemetry(req.metric_name, req.value, req.labels)
+    return {"recorded": True, "metric": req.metric_name}

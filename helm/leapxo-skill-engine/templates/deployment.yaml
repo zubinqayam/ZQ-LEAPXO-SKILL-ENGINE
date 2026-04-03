@@ -36,6 +36,10 @@ spec:
               value: "{{ .Values.orchestrator.contextWindow }}"
             - name: LOG_LEVEL
               value: "{{ .Values.orchestrator.env.LOG_LEVEL }}"
+            - name: LEAPXO_ENV
+              value: "{{ .Values.orchestrator.env.LEAPXO_ENV }}"
+            - name: PORT
+              value: "{{ .Values.orchestrator.env.PORT }}"
             - name: ENFORCE_SIGNATURES
               value: "{{ .Values.security.enforceSignatures }}"
             - name: FIREWALL_STRICT
@@ -46,6 +50,14 @@ spec:
                   name: leapxo-redis-secret
                   key: redis-url
                   optional: true
+            {{- range .Values.security.secretEnvVars }}
+            - name: {{ .envVar }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .secretKey }}
+                  optional: true
+            {{- end }}
           resources:
             {{- toYaml .Values.orchestrator.resources | nindent 12 }}
           securityContext:

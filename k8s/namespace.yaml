@@ -1,0 +1,8 @@
+# k8s/namespace.yaml — LeapXO v9 Kubernetes namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: leapxo
+  labels:
+    app.kubernetes.io/name: leapxo-skill-engine
+    app.kubernetes.io/version: "9.0.0"
