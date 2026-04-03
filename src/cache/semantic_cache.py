@@ -19,12 +19,12 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from threading import RLock
-from typing import Any, Optional
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Cache entry
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class CacheEntry:
@@ -36,11 +36,12 @@ class CacheEntry:
 # Semantic Cache
 # ---------------------------------------------------------------------------
 
+
 class SemanticCache:
     """Two-level cache: routing decisions and skill outputs."""
 
-    DEFAULT_ROUTING_TTL = 1800.0   # 30 minutes
-    DEFAULT_OUTPUT_TTL = 300.0     # 5 minutes
+    DEFAULT_ROUTING_TTL = 1800.0  # 30 minutes
+    DEFAULT_OUTPUT_TTL = 300.0  # 5 minutes
     DEFAULT_CAPACITY = 1024
 
     def __init__(
@@ -71,7 +72,7 @@ class SemanticCache:
     # Routing cache (L1→L2 decisions)
     # ------------------------------------------------------------------
 
-    def get_routing(self, key: str) -> Optional[Any]:
+    def get_routing(self, key: str) -> Any | None:
         """Return cached routing decision or None if missing/expired."""
         return self._get(self._routing, key)
 
@@ -82,7 +83,7 @@ class SemanticCache:
     # Output cache
     # ------------------------------------------------------------------
 
-    def get_output(self, key: str) -> Optional[Any]:
+    def get_output(self, key: str) -> Any | None:
         return self._get(self._outputs, key)
 
     def set_output(self, key: str, value: Any) -> None:
@@ -95,12 +96,8 @@ class SemanticCache:
     def stats(self) -> dict:
         with self._lock:
             now = time.monotonic()
-            routing_live = sum(
-                1 for e in self._routing.values() if e.expires_at > now
-            )
-            output_live = sum(
-                1 for e in self._outputs.values() if e.expires_at > now
-            )
+            routing_live = sum(1 for e in self._routing.values() if e.expires_at > now)
+            output_live = sum(1 for e in self._outputs.values() if e.expires_at > now)
         return {
             "routing_entries": routing_live,
             "output_entries": output_live,
@@ -117,7 +114,7 @@ class SemanticCache:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _get(self, store: OrderedDict, key: str) -> Optional[Any]:
+    def _get(self, store: OrderedDict, key: str) -> Any | None:
         with self._lock:
             entry = store.get(key)
             if entry is None:

@@ -1,0 +1,14 @@
+replicaCount: 1
+
+image:
+  repository: leapxo/registry
+  tag: v2.1
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"

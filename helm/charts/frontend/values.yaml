@@ -1,0 +1,17 @@
+replicaCount: 1
+
+image:
+  repository: leapxo/frontend
+  tag: v2.1
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "64Mi"
+  limits:
+    cpu: "250m"
+    memory: "128Mi"
+
+service:
+  port: 80

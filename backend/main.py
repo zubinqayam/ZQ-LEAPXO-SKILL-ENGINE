@@ -1,18 +1,18 @@
 import asyncio
 import hashlib
+import heapq
 import os
+import random
 import time
 from collections import deque
 from contextlib import asynccontextmanager
-import heapq
-import random
-from typing import Dict, Any, Optional, List
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
-from backend.db import init_db, close_db, get_db
+from backend.db import close_db, get_db, init_db
 from backend.vault import get_vault
 
 # -----------------------------
@@ -35,7 +35,7 @@ TELEMETRY_RATE_LIMIT = int(os.environ.get("LEAPXO_TELEMETRY_RATE_LIMIT", "60"))
 # ---------------------------------------------------------------------------
 # Telemetry rate limiter (in-process, per-IP sliding window)
 # ---------------------------------------------------------------------------
-_telemetry_window: Dict[str, deque] = {}
+_telemetry_window: dict[str, deque] = {}
 _telemetry_lock = asyncio.Lock()
 
 
@@ -54,16 +54,19 @@ async def _check_telemetry_rate(client_ip: str) -> None:
             )
         window.append(now)
 
+
 # -----------------------------
 # Embedding & Semantic Similarity
 # -----------------------------
 def embed_text(text: str) -> set:
     return set(text.lower().split())
 
+
 def semantic_similarity(prompt: str, output: str) -> float:
     prompt_tokens = embed_text(prompt)
     output_tokens = embed_text(output)
     return len(prompt_tokens & output_tokens) / max(1, len(prompt_tokens))
+
 
 # -----------------------------
 # Multi-Modal Skill DNA
@@ -74,9 +77,9 @@ class SkillDNA:
         self.trust_score = initial_trust
         self.history = deque(maxlen=100)
         self._lock = asyncio.Lock()
-        self.context_memory: Dict[str, Any] = {}
-        self.multi_modal_perf: Dict[str, List[float]] = {"text": [], "code": [], "image": []}
-        self.human_override: Optional[bool] = None
+        self.context_memory: dict[str, Any] = {}
+        self.multi_modal_perf: dict[str, list[float]] = {"text": [], "code": [], "image": []}
+        self.human_override: bool | None = None
 
     async def update_trust(self, delta: float):
         async with self._lock:
@@ -104,13 +107,14 @@ class SkillDNA:
         async with self._lock:
             self.human_override = allow
 
+
 # -----------------------------
 # DNA Registry with Auto-Archiving
 # -----------------------------
 class DNARegistry:
     def __init__(self):
-        self._registry: Dict[str, SkillDNA] = {}
-        self._archived: Dict[str, SkillDNA] = {}
+        self._registry: dict[str, SkillDNA] = {}
+        self._archived: dict[str, SkillDNA] = {}
         self._lock = asyncio.Lock()
 
     async def register_dna(self, dna: SkillDNA) -> SkillDNA:
@@ -119,20 +123,24 @@ class DNARegistry:
                 self._registry[dna.model_hash] = dna
             return self._registry[dna.model_hash]
 
-    async def best_fit_agent(self) -> Optional[SkillDNA]:
+    async def best_fit_agent(self) -> SkillDNA | None:
         async with self._lock:
-            valid_agents = [d for d in self._registry.values() if d.trust_score >= MIN_TRUST_THRESHOLD]
+            valid_agents = [
+                d for d in self._registry.values() if d.trust_score >= MIN_TRUST_THRESHOLD
+            ]
             if not valid_agents:
                 return None
             return max(valid_agents, key=lambda d: d.trust_score)
 
     async def prune_low_trust(self):
         async with self._lock:
-            to_archive = [k for k, d in self._registry.items() if d.trust_score < MIN_TRUST_THRESHOLD]
+            to_archive = [
+                k for k, d in self._registry.items() if d.trust_score < MIN_TRUST_THRESHOLD
+            ]
             for k in to_archive:
                 self._archived[k] = self._registry.pop(k)
 
-    def list_agents(self) -> List[Dict[str, Any]]:
+    def list_agents(self) -> list[dict[str, Any]]:
         return [
             {
                 "model_hash": k,
@@ -146,11 +154,9 @@ class DNARegistry:
             for k, d in self._registry.items()
         ]
 
-    def list_archived(self) -> List[Dict[str, Any]]:
-        return [
-            {"model_hash": k, "trust_score": d.trust_score}
-            for k, d in self._archived.items()
-        ]
+    def list_archived(self) -> list[dict[str, Any]]:
+        return [{"model_hash": k, "trust_score": d.trust_score} for k, d in self._archived.items()]
+
 
 # -----------------------------
 # Meta Agent with Adversarial Simulation
@@ -158,7 +164,7 @@ class DNARegistry:
 class MetaAgent:
     def __init__(self, max_recursion: int = 3):
         self.max_recursion = max_recursion
-        self.recursion_heatmap: List[int] = []
+        self.recursion_heatmap: list[int] = []
         self.validation_history: deque = deque(maxlen=500)
 
     async def semantic_validation(self, prompt: str, output: str) -> bool:
@@ -185,12 +191,15 @@ class MetaAgent:
                 valid = valid and (random.random() > ADVERSARIAL_FAILURE_RATE)
 
             recent_failures = sum(1 for v in self.validation_history if not v)
-            threshold_adjustment = ADAPTIVE_THRESHOLD_FACTOR * min(1, recent_failures / FAILURE_WINDOW_SIZE)
+            threshold_adjustment = ADAPTIVE_THRESHOLD_FACTOR * min(
+                1, recent_failures / FAILURE_WINDOW_SIZE
+            )
             valid = valid and (random.random() > threshold_adjustment)
             self.validation_history.append(valid)
             return valid
         except Exception:
             return False
+
 
 # -----------------------------
 # Orchestrator with Dynamic Priority & Human Override
@@ -201,12 +210,12 @@ class Orchestrator:
         self.meta_agent = MetaAgent()
         self.token_budget = 4096
         self.task_queue: list = []
-        self.agent_market: Dict[str, int] = {}
+        self.agent_market: dict[str, int] = {}
 
     async def schedule_agent(self, dna: SkillDNA, prompt: str, priority: int):
         heapq.heappush(self.task_queue, (priority, random.random(), dna, prompt))
 
-    async def run_queue(self) -> List[Dict[str, str]]:
+    async def run_queue(self) -> list[dict[str, str]]:
         results = []
         while self.task_queue and self.token_budget > 0:
             _, _, dna, prompt = heapq.heappop(self.task_queue)
@@ -214,7 +223,9 @@ class Orchestrator:
                 continue
 
             if dna.human_override is False:
-                results.append({"model_hash": dna.model_hash, "result": "Blocked by Human Override"})
+                results.append(
+                    {"model_hash": dna.model_hash, "result": "Blocked by Human Override"}
+                )
                 continue
 
             bid = int(self.token_budget * min(MAX_TOKEN_ALLOCATION_FACTOR, dna.trust_score))
@@ -254,10 +265,12 @@ class Orchestrator:
             await dna.update_trust(-0.2)
             return "Execution Error"
 
+
 # -----------------------------
 # Singleton orchestrator state
 # -----------------------------
 orchestrator = Orchestrator()
+
 
 # ---------------------------------------------------------------------------
 # FastAPI lifespan — open/close DB on startup/shutdown
@@ -282,6 +295,7 @@ app.add_middleware(
 )
 
 # ---------- Request / Response models (strict Pydantic v2) ----------
+
 
 class RegisterAgentRequest(BaseModel):
     model_config = {"strict": True, "extra": "forbid"}
@@ -329,6 +343,7 @@ class TelemetryRequest(BaseModel):
 
 # ---------- Endpoints ----------
 
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "9.0.0"}
@@ -344,10 +359,10 @@ def healthz():
 def readyz():
     """Kubernetes readiness probe — verifies DB connection."""
     try:
-        db = get_db()
+        get_db()
         return {"status": "ready"}
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Not ready: {exc}")
+        raise HTTPException(status_code=503, detail=f"Not ready: {exc}") from exc
 
 
 @app.get("/vault/status")

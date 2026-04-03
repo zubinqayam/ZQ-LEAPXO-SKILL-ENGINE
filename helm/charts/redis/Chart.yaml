@@ -1,0 +1,5 @@
+apiVersion: v2
+name: redis
+description: Redis in-memory data store for LEAPXO IPC and semantic cache
+type: application
+version: 0.1.0

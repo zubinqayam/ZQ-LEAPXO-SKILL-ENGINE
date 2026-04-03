@@ -25,12 +25,12 @@ from __future__ import annotations
 import copy
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 from src.core.exceptions import ApprovalRequiredError, ShadowRepairError
-
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -42,6 +42,7 @@ SHADOW_PARITY_THRESHOLD = 0.95  # 95 % parity required before promotion
 # ---------------------------------------------------------------------------
 # Parity evaluation
 # ---------------------------------------------------------------------------
+
 
 def _default_parity(prod_output: Any, shadow_output: Any) -> float:
     """Simple string-overlap parity metric.
@@ -67,7 +68,8 @@ def _default_parity(prod_output: Any, shadow_output: Any) -> float:
 # Repair attempt record
 # ---------------------------------------------------------------------------
 
-class RepairStatus(str, Enum):
+
+class RepairStatus(StrEnum):
     PENDING = "pending"
     PATCHED = "patched"
     TESTED = "tested"
@@ -82,13 +84,13 @@ class RepairAttempt:
     attempt_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     skill_id: str = ""
     original_schema: dict = field(default_factory=dict)
-    patched_schema: Optional[dict] = None
+    patched_schema: dict | None = None
     parity_score: float = 0.0
     test_passed: bool = False
     status: RepairStatus = RepairStatus.PENDING
-    error: Optional[str] = None
+    error: str | None = None
     created_at: float = field(default_factory=time.time)
-    approval_request_id: Optional[str] = None
+    approval_request_id: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -113,14 +115,14 @@ class ShadowRepairPipeline:
 
     def __init__(
         self,
-        test_runner: Optional[TestRunner] = None,
-        parity_fn: Optional[ParityFn] = None,
+        test_runner: TestRunner | None = None,
+        parity_fn: ParityFn | None = None,
         approval_workflow: Any = None,
     ) -> None:
         self._test_runner = test_runner or (lambda _: True)
         self._parity_fn = parity_fn or _default_parity
         self._approval_workflow = approval_workflow
-        self._history: Dict[str, RepairAttempt] = {}
+        self._history: dict[str, RepairAttempt] = {}
 
     # ------------------------------------------------------------------
     # Pipeline entry point
@@ -133,7 +135,7 @@ class ShadowRepairPipeline:
         patch_fn: PatchFn,
         *,
         prod_output: Any = None,
-        shadow_executor: Optional[Callable[[dict], Any]] = None,
+        shadow_executor: Callable[[dict], Any] | None = None,
     ) -> RepairAttempt:
         """Run the full repair pipeline.
 
@@ -204,8 +206,7 @@ class ShadowRepairPipeline:
             if parity < SHADOW_PARITY_THRESHOLD:
                 attempt.status = RepairStatus.PARITY_FAILED
                 attempt.error = (
-                    f"Shadow parity {parity:.2%} below required "
-                    f"{SHADOW_PARITY_THRESHOLD:.0%}."
+                    f"Shadow parity {parity:.2%} below required {SHADOW_PARITY_THRESHOLD:.0%}."
                 )
                 raise ShadowRepairError(attempt.error)
 
@@ -224,5 +225,5 @@ class ShadowRepairPipeline:
             f"Approval request ID: {attempt.approval_request_id}"
         )
 
-    def get_history(self) -> List[RepairAttempt]:
+    def get_history(self) -> list[RepairAttempt]:
         return list(self._history.values())

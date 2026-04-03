@@ -3,11 +3,10 @@
 import time
 
 import pytest
-
 from src.governance.audit_logger import (
-    AuditLogger,
-    ApprovalWorkflow,
     ApprovalStatus,
+    ApprovalWorkflow,
+    AuditLogger,
     RiskLevel,
 )
 
@@ -81,8 +80,8 @@ class TestApprovalWorkflow:
     def test_sla_breach_escalation(self, workflow):
         req = workflow.submit("slow-skill", validation_score=0.7)
         # Set submitted_at to > SLA threshold in the past
-        workflow._requests[req.request_id].submitted_at = (
-            time.time() - (workflow.SLA_HOURS * 3600 + 1)
+        workflow._requests[req.request_id].submitted_at = time.time() - (
+            workflow.SLA_HOURS * 3600 + 1
         )
         breached = workflow.check_sla()
         assert any(b.request_id == req.request_id for b in breached)

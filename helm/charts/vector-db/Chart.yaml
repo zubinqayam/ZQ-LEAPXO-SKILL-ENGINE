@@ -1,0 +1,5 @@
+apiVersion: v2
+name: vector-db
+description: LEAPXO Vector Database (HNSW)
+type: application
+version: 0.1.0

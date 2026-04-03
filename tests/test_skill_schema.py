@@ -2,8 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-
-from src.core.skill_schema import SkillSchema, SecurityLevel, OutputFormat
+from src.core.skill_schema import SecurityLevel, SkillSchema
 
 
 def _valid_payload(**overrides) -> dict:
@@ -93,9 +92,7 @@ class TestInstructions:
     def test_non_prunable_instruction(self):
         s = SkillSchema(
             **_valid_payload(
-                instructions=[
-                    {"content": "Critical instruction", "prunable": False, "weight": 1.0}
-                ]
+                instructions=[{"content": "Critical instruction", "prunable": False, "weight": 1.0}]
             )
         )
         assert s.instructions[0].prunable is False

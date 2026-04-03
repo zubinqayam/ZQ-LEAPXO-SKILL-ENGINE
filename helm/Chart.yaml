@@ -1,0 +1,22 @@
+apiVersion: v2
+name: leapxo-skill-engine-v2
+description: LEAPXO Skill Engine v2.1 – AI Orchestration Platform (full-stack starter)
+type: application
+version: 2.1.0
+appVersion: "2.1"
+dependencies:
+  - name: orchestrator
+    version: ">=0.1.0"
+    repository: "file://charts/orchestrator"
+  - name: registry
+    version: ">=0.1.0"
+    repository: "file://charts/registry"
+  - name: vector-db
+    version: ">=0.1.0"
+    repository: "file://charts/vector-db"
+  - name: redis
+    version: ">=0.1.0"
+    repository: "file://charts/redis"
+  - name: frontend
+    version: ">=0.1.0"
+    repository: "file://charts/frontend"
