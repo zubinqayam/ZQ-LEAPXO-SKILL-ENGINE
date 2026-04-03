@@ -1,0 +1,27 @@
+# Dockerfile.backend — LeapXO v9 FastAPI backend
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+# System dependencies for SQLCipher (optional; falls back to plain SQLite)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsqlcipher-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir fastapi uvicorn
+
+# Copy source
+COPY src/ ./src/
+COPY backend/ ./backend/
+
+# Non-root user
+RUN useradd -u 1000 -m leapxo
+USER leapxo
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

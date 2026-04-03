@@ -1,10 +1,8 @@
 """Tests for ECDSA signer / verifier."""
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric import ec
-
-from src.security.ecdsa_signer import ECDSASigner, ECDSAVerifier, canonical_payload
 from src.core.exceptions import SignatureVerificationError
+from src.security.ecdsa_signer import ECDSASigner, ECDSAVerifier, canonical_payload
 
 
 @pytest.fixture()

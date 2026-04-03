@@ -3,7 +3,6 @@
 import time
 
 import pytest
-
 from src.cache.semantic_cache import SemanticCache
 
 

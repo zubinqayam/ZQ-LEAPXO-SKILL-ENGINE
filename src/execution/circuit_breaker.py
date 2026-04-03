@@ -21,13 +21,11 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
 from threading import Lock
-from typing import Deque, Dict, Optional
 
 from src.core.exceptions import CircuitBreakerOpenError, IntentLoopError
-
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -37,16 +35,17 @@ MAX_DEPTH = 3
 MAX_SKILL_CHAIN = 5
 INTENT_LOOP_THRESHOLD = 3
 
-DEFAULT_FAILURE_THRESHOLD = 3      # failures before OPEN
-DEFAULT_RECOVERY_TIMEOUT = 30.0    # seconds before trying HALF_OPEN
-DEFAULT_SUCCESS_THRESHOLD = 2      # successes in HALF_OPEN before CLOSED
+DEFAULT_FAILURE_THRESHOLD = 3  # failures before OPEN
+DEFAULT_RECOVERY_TIMEOUT = 30.0  # seconds before trying HALF_OPEN
+DEFAULT_SUCCESS_THRESHOLD = 2  # successes in HALF_OPEN before CLOSED
 
 
 # ---------------------------------------------------------------------------
 # State
 # ---------------------------------------------------------------------------
 
-class BreakerState(str, Enum):
+
+class BreakerState(StrEnum):
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -63,6 +62,7 @@ class BreakerStats:
 # ---------------------------------------------------------------------------
 # Per-skill circuit breaker
 # ---------------------------------------------------------------------------
+
 
 class CircuitBreaker:
     """Single circuit breaker for one skill or layer."""
@@ -127,14 +127,15 @@ class CircuitBreaker:
 # Registry of all breakers + guard utilities
 # ---------------------------------------------------------------------------
 
+
 class CircuitBreakerRegistry:
     """Manages all circuit breakers and cross-cutting safety limits."""
 
     def __init__(self) -> None:
-        self._breakers: Dict[str, CircuitBreaker] = {}
+        self._breakers: dict[str, CircuitBreaker] = {}
         self._lock = Lock()
         # Intent loop detection: maps session_id → deque of recent intents
-        self._intent_history: Dict[str, Deque[str]] = defaultdict(
+        self._intent_history: dict[str, deque[str]] = defaultdict(
             lambda: deque(maxlen=INTENT_LOOP_THRESHOLD + 1)
         )
 

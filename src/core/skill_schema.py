@@ -7,23 +7,23 @@ Unknown fields are forbidden to prevent injection via extra keys.
 from __future__ import annotations
 
 import re
-from enum import Enum
-from typing import Annotated, List, Optional
+from enum import StrEnum
+from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
 
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
 
-class SecurityLevel(str, Enum):
+
+class SecurityLevel(StrEnum):
     P0 = "P0"  # Critical / never decay
     P1 = "P1"  # High
     P2 = "P2"  # Standard
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     TEXT = "text"
     JSON = "json"
     MARKDOWN = "markdown"
@@ -33,6 +33,7 @@ class OutputFormat(str, Enum):
 # ---------------------------------------------------------------------------
 # Sub-models
 # ---------------------------------------------------------------------------
+
 
 class SkillInstruction(BaseModel):
     """A single instruction entry within a skill."""
@@ -57,11 +58,11 @@ class SkillMetadata(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-    author: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    description: Optional[str] = None
+    author: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    description: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -94,19 +95,19 @@ class SkillSchema(BaseModel):
         description="ISO 3166-1 alpha-2 country code.  'GL' = global (no regional restriction).",
     )
     security_level: SecurityLevel = Field(default=SecurityLevel.P2)
-    signature: Optional[str] = Field(
+    signature: str | None = Field(
         default=None,
         description="Base64-encoded ECDSA P-256 signature over the canonical skill payload.",
     )
-    dependencies: List[str] = Field(
+    dependencies: list[str] = Field(
         default_factory=list,
         description="List of skill_ids this skill depends on (max chain depth enforced by engine).",
     )
-    instructions: List[SkillInstruction] = Field(
+    instructions: list[SkillInstruction] = Field(
         default_factory=list,
         description="Ordered list of instruction blocks (L2 layer).",
     )
-    metadata: Optional[SkillMetadata] = None
+    metadata: SkillMetadata | None = None
 
     # ------------------------------------------------------------------
     # Field validators
@@ -144,13 +145,11 @@ class SkillSchema(BaseModel):
     def validate_dependencies(cls, v: list[str]) -> list[str]:
         for dep in v:
             if not _KEBAB_RE.match(dep):
-                raise ValueError(
-                    f"Dependency '{dep}' must be a valid kebab-case skill_id."
-                )
+                raise ValueError(f"Dependency '{dep}' must be a valid kebab-case skill_id.")
         return v
 
     @model_validator(mode="after")
-    def validate_p0_requires_signature(self) -> "SkillSchema":
+    def validate_p0_requires_signature(self) -> SkillSchema:
         if self.security_level == SecurityLevel.P0 and not self.signature:
             raise ValueError("P0 skills MUST carry an ECDSA signature.")
         return self

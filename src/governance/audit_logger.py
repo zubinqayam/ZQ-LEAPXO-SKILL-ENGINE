@@ -21,14 +21,14 @@ import json
 import time
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from threading import Lock
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Audit log
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class AuditEntry:
@@ -36,7 +36,7 @@ class AuditEntry:
     timestamp: float
     event_type: str
     actor: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     prev_hash: str
     entry_hash: str = field(default="", init=False)
 
@@ -62,7 +62,7 @@ class AuditLogger:
     GENESIS_HASH = "0" * 64
 
     def __init__(self, max_in_memory: int = 10_000) -> None:
-        self._entries: List[AuditEntry] = []
+        self._entries: list[AuditEntry] = []
         self._max = max_in_memory
         self._lock = Lock()
         self._last_hash = self.GENESIS_HASH
@@ -71,7 +71,7 @@ class AuditLogger:
         self,
         event_type: str,
         actor: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
     ) -> AuditEntry:
         """Append a new event to the audit log."""
         with self._lock:
@@ -114,7 +114,7 @@ class AuditLogger:
             prev = entry.entry_hash
         return True
 
-    def get_entries(self) -> List[AuditEntry]:
+    def get_entries(self) -> list[AuditEntry]:
         with self._lock:
             return list(self._entries)
 
@@ -123,14 +123,15 @@ class AuditLogger:
 # Approval workflow
 # ---------------------------------------------------------------------------
 
-class ApprovalStatus(str, Enum):
+
+class ApprovalStatus(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
     ESCALATED = "escalated"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -145,8 +146,8 @@ class ApprovalRequest:
     risk_level: RiskLevel = RiskLevel.LOW
     status: ApprovalStatus = ApprovalStatus.PENDING
     submitted_at: float = field(default_factory=time.time)
-    approved_at: Optional[float] = None
-    approved_by: Optional[str] = None
+    approved_at: float | None = None
+    approved_by: str | None = None
     notes: str = ""
     is_red_team: bool = False
 
@@ -162,8 +163,8 @@ class ApprovalWorkflow:
     SLA_HOURS = 4
     COOLDOWN_MINUTES = 5
 
-    def __init__(self, audit_logger: Optional[AuditLogger] = None) -> None:
-        self._requests: Dict[str, ApprovalRequest] = {}
+    def __init__(self, audit_logger: AuditLogger | None = None) -> None:
+        self._requests: dict[str, ApprovalRequest] = {}
         self._lock = Lock()
         self._audit = audit_logger or AuditLogger()
 
@@ -224,9 +225,7 @@ class ApprovalWorkflow:
             if req is None:
                 raise ValueError(f"Approval request '{request_id}' not found.")
             if req.status != ApprovalStatus.PENDING:
-                raise ValueError(
-                    f"Request '{request_id}' is not PENDING (status: {req.status})."
-                )
+                raise ValueError(f"Request '{request_id}' is not PENDING (status: {req.status}).")
             elapsed_minutes = (time.time() - req.submitted_at) / 60
             if elapsed_minutes < self.COOLDOWN_MINUTES:
                 raise ValueError(
@@ -260,17 +259,16 @@ class ApprovalWorkflow:
         )
         return req
 
-    def check_sla(self) -> List[ApprovalRequest]:
+    def check_sla(self) -> list[ApprovalRequest]:
         """Return all PENDING requests that have breached the SLA deadline."""
         sla_seconds = self.SLA_HOURS * 3600
         now = time.time()
-        breached: List[ApprovalRequest] = []
+        breached: list[ApprovalRequest] = []
         with self._lock:
             for req in self._requests.values():
-                if req.status == ApprovalStatus.PENDING:
-                    if now - req.submitted_at > sla_seconds:
-                        req.status = ApprovalStatus.ESCALATED
-                        breached.append(req)
+                if req.status == ApprovalStatus.PENDING and now - req.submitted_at > sla_seconds:
+                    req.status = ApprovalStatus.ESCALATED
+                    breached.append(req)
         for req in breached:
             self._audit.log(
                 "approval_sla_breached",
