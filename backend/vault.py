@@ -82,14 +82,22 @@ class VaultManager:
         return self._get(_ENV_DB_KEY, "db-key") or ""
 
     def api_key(self) -> str:
-        """LLM provider API key.  Raises if not configured."""
+        """LLM provider API key. Raises if not configured in production."""
         key = self._get(_ENV_API_KEY, "api-key")
         if not key:
-            raise RuntimeError(
-                "LLM API key not configured. "
-                f"Set the {_ENV_API_KEY} environment variable or mount a secret "
-                "at /run/secrets/leapxo/api-key."
+            env = os.environ.get("LEAPXO_ENV", "development")
+            if env == "production":
+                raise RuntimeError(
+                    "LLM API key not configured. "
+                    f"Set the {_ENV_API_KEY} environment variable or mount a secret "
+                    "at /run/secrets/leapxo/api-key."
+                )
+            logger.warning(
+                "LLM API key not configured (%s); continuing without an API key in %s.",
+                _ENV_API_KEY,
+                env,
             )
+            return ""
         return key
 
     def redis_url(self) -> str:
