@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSecureStorage } from './hooks/useSecureStorage'
 
 const API = ''  // proxied via vite dev server
+const VERSION = '9.0.0'
 
 /* ─── tiny fetch helpers ─── */
 async function apiFetch(path, options = {}) {
@@ -69,6 +71,7 @@ export default function App() {
   const [status, setStatus] = useState(null)
   const [results, setResults] = useState([])
   const [notice, setNotice] = useState({ msg: '', type: '' })
+  const [vaultStatus, setVaultStatus] = useState(null)
 
   /* register form */
   const [label, setLabel] = useState('')
@@ -79,18 +82,23 @@ export default function App() {
   const [prompt, setPrompt] = useState('')
   const [priority, setPriority] = useState(3)
 
+  /* Secure storage for any client-side config — no localStorage */
+  const { value: savedLabel, setValue: saveLabel } = useSecureStorage('leapxo-last-label')
+
   const notify = (msg, type = 'info') => setNotice({ msg, type })
 
   const refresh = useCallback(async () => {
     try {
-      const [ag, ar, st] = await Promise.all([
+      const [ag, ar, st, vs] = await Promise.all([
         apiFetch('/agents'),
         apiFetch('/agents/archived'),
         apiFetch('/status'),
+        apiFetch('/vault/status'),
       ])
       setAgents(ag.agents)
       setArchived(ar.archived)
       setStatus(st)
+      setVaultStatus(vs)
       if (ag.agents.length && !selHash) setSelHash(ag.agents[0].model_hash)
     } catch (e) {
       notify(e.message, 'error')
@@ -107,6 +115,7 @@ export default function App() {
         body: JSON.stringify({ label, initial_trust: Number(initTrust) }),
       })
       notify(`Registered: ${data.model_hash.slice(0, 16)}…`, 'success')
+      await saveLabel(label)
       setLabel('')
       refresh()
     } catch (err) {
@@ -161,7 +170,7 @@ export default function App() {
           <span style={styles.keyhole}>⬡</span>
           <div>
             <h1 style={styles.title}>LeapXO Skill Engine</h1>
-            <p style={styles.subtitle}>Keyhole UI — v3.6 Adaptive Cognitive Market</p>
+            <p style={styles.subtitle}>Keyhole UI — v{VERSION} Adaptive Cognitive Market</p>
           </div>
         </div>
         {status && (
@@ -170,6 +179,12 @@ export default function App() {
             <Pill label="Queue" value={status.queue_length} />
             <Pill label="Active Agents" value={status.active_agents} />
             <Pill label="Archived" value={status.archived_agents} />
+            {vaultStatus && (
+              <Pill
+                label="Vault"
+                value={vaultStatus.api_key_set ? '🔒 Secured' : '⚠ Unset'}
+              />
+            )}
           </div>
         )}
       </header>

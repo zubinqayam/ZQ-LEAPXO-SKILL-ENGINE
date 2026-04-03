@@ -1,9 +1,9 @@
 apiVersion: v2
 name: leapxo-skill-engine
-description: LEAPXO Skill Engine v2.1 — Hardened + Enhanced AI Skill Orchestration
+description: LEAPXO Skill Engine v9 — Production-grade AI Skill Orchestration with SQLCipher+WAL, secure vault, and QAQC-verified security enhancements
 type: application
-version: 2.1.0
-appVersion: "2.1.0"
+version: 9.0.0
+appVersion: "9.0.0"
 keywords:
   - ai
   - skill-engine

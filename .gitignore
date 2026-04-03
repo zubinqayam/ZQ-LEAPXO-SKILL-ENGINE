@@ -12,6 +12,7 @@ build/
 # Testing
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 
 # Virtual environments
@@ -31,3 +32,16 @@ Thumbs.db
 # Node
 node_modules/
 frontend/dist/
+
+# Secrets — NEVER commit these
+.env.local
+.env.*.local
+*.env
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# Tauri build artifacts
+frontend/src-tauri/target/
