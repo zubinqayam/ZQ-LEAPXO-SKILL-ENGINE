@@ -13,6 +13,11 @@ Key guarantees:
 from __future__ import annotations
 
 import json
+from typing import Any
+
+from src.core.exceptions import TokenBudgetExceededError
+
+_ENCODING: Any = None
 
 try:
     import tiktoken  # type: ignore
@@ -22,8 +27,6 @@ try:
 except Exception:  # pragma: no cover
     _TIKTOKEN_AVAILABLE = False
     _ENCODING = None
-
-from src.core.exceptions import TokenBudgetExceededError
 
 # ---------------------------------------------------------------------------
 # Constants

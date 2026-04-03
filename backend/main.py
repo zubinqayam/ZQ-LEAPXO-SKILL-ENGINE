@@ -35,7 +35,7 @@ TELEMETRY_RATE_LIMIT = int(os.environ.get("LEAPXO_TELEMETRY_RATE_LIMIT", "60"))
 # ---------------------------------------------------------------------------
 # Telemetry rate limiter (in-process, per-IP sliding window)
 # ---------------------------------------------------------------------------
-_telemetry_window: dict[str, deque] = {}
+_telemetry_window: dict[str, deque[float]] = {}
 _telemetry_lock = asyncio.Lock()
 
 
@@ -75,7 +75,7 @@ class SkillDNA:
     def __init__(self, model_weights: bytes, initial_trust: float = 1.0):
         self.model_hash = hashlib.sha256(model_weights).hexdigest()
         self.trust_score = initial_trust
-        self.history = deque(maxlen=100)
+        self.history: deque[float] = deque(maxlen=100)
         self._lock = asyncio.Lock()
         self.context_memory: dict[str, Any] = {}
         self.multi_modal_perf: dict[str, list[float]] = {"text": [], "code": [], "image": []}
