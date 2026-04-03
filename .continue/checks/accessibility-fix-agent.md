@@ -35,15 +35,14 @@ For each new accessibility issue:
 
 ### 4. Comment Marking
 
-Add HTML comment markers to affected code locations:
+Add comment markers to affected code locations using syntax appropriate for the file type:
 
-```html
-<!-- accessibility-fix: issue-[number] - Brief description -->
-[problematic code]
-<!-- /accessibility-fix -->
+- **HTML/template files**
 
-```
-
+  ```html
+  <!-- accessibility-fix: issue-[number] - Brief description -->
+  [problematic code]
+  <!-- /accessibility-fix -->
 ## Triage System
 
 ### Category 1: Missing Alt Text (WCAG A - Critical)
