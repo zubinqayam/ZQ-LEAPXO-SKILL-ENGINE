@@ -5,8 +5,26 @@ import { skillSchema } from "./skills/schema.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors());
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // POST /execute – run a skill against a prompt
