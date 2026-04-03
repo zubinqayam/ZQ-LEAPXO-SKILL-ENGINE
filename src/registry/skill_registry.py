@@ -14,23 +14,21 @@ replace this with a real HNSW client (e.g. hnswlib or Qdrant).
 
 from __future__ import annotations
 
-import copy
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
 from threading import Lock
-from typing import Dict, List, Optional, Tuple
 
-from src.core.skill_schema import SkillSchema, SecurityLevel
 from src.core.exceptions import SkillNotFoundError, SkillValidationError
-from src.security.ecdsa_signer import ECDSAVerifier, canonical_payload
-
+from src.core.skill_schema import SecurityLevel, SkillSchema
+from src.security.ecdsa_signer import ECDSAVerifier
 
 # ---------------------------------------------------------------------------
 # Slot (Blue / Green)
 # ---------------------------------------------------------------------------
 
-class DeploymentSlot(str, Enum):
-    BLUE = "blue"    # Active production slot
+
+class DeploymentSlot(StrEnum):
+    BLUE = "blue"  # Active production slot
     GREEN = "green"  # Staging slot (shadow)
 
 
@@ -38,18 +36,20 @@ class DeploymentSlot(str, Enum):
 # Registry entry
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RegistryEntry:
     schema: SkillSchema
-    embedding: List[float]
+    embedding: list[float]
     slot: DeploymentSlot = DeploymentSlot.BLUE
     access_count: int = 0
-    protected: bool = False   # True for P0 and rare skills
+    protected: bool = False  # True for P0 and rare skills
 
 
 # ---------------------------------------------------------------------------
 # Skill Registry
 # ---------------------------------------------------------------------------
+
 
 class SkillRegistry:
     """Central skill store with deployment slots and access-based protection."""
@@ -59,10 +59,10 @@ class SkillRegistry:
 
     def __init__(
         self,
-        verifier: Optional[ECDSAVerifier] = None,
+        verifier: ECDSAVerifier | None = None,
         enforce_signatures: bool = False,
     ) -> None:
-        self._entries: Dict[str, RegistryEntry] = {}
+        self._entries: dict[str, RegistryEntry] = {}
         self._lock = Lock()
         self._verifier = verifier
         self._enforce_signatures = enforce_signatures
@@ -74,7 +74,7 @@ class SkillRegistry:
     def register(
         self,
         schema: SkillSchema,
-        embedding: List[float],
+        embedding: list[float],
         *,
         slot: DeploymentSlot = DeploymentSlot.BLUE,
     ) -> None:
@@ -91,7 +91,7 @@ class SkillRegistry:
                     f"Skill '{schema.skill_id}' failed signature verification."
                 ) from exc
 
-        is_protected = (schema.security_level == SecurityLevel.P0)
+        is_protected = schema.security_level == SecurityLevel.P0
 
         entry = RegistryEntry(
             schema=schema,
@@ -128,12 +128,12 @@ class SkillRegistry:
             entry.protected = True
         return entry
 
-    def get_all_blue(self) -> List[RegistryEntry]:
+    def get_all_blue(self) -> list[RegistryEntry]:
         """Return all skills in the BLUE (production) slot."""
         with self._lock:
             return [e for e in self._entries.values() if e.slot == DeploymentSlot.BLUE]
 
-    def list_skill_ids(self) -> List[str]:
+    def list_skill_ids(self) -> list[str]:
         with self._lock:
             return list(self._entries.keys())
 
@@ -148,9 +148,7 @@ class SkillRegistry:
             Number of skills evicted.
         """
         with self._lock:
-            unprotected = [
-                (sid, e) for sid, e in self._entries.items() if not e.protected
-            ]
+            unprotected = [(sid, e) for sid, e in self._entries.items() if not e.protected]
             evicted = 0
             if len(self._entries) > max_skills:
                 # Sort by access_count ascending (evict least-used first)

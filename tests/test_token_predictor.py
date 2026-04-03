@@ -1,13 +1,12 @@
 """Tests for the token predictor."""
 
 import pytest
-
+from src.core.exceptions import TokenBudgetExceededError
 from src.core.token_predictor import (
     count_tokens,
     predict_tokens,
     prune_instructions,
 )
-from src.core.exceptions import TokenBudgetExceededError
 
 
 class TestCountTokens:
@@ -45,7 +44,11 @@ class TestPredictTokens:
 class TestPruneInstructions:
     def _make_instructions(self, count: int, prunable: bool = True, weight: float = 0.5) -> list:
         return [
-            {"content": f"Instruction {i} " + ("word " * 50), "prunable": prunable, "weight": weight}
+            {
+                "content": f"Instruction {i} " + ("word " * 50),
+                "prunable": prunable,
+                "weight": weight,
+            }
             for i in range(count)
         ]
 

@@ -19,18 +19,18 @@ from __future__ import annotations
 import base64
 import binascii
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Callable, Optional
+from enum import StrEnum
 
 from src.core.exceptions import PromptFirewallError
-
 
 # ---------------------------------------------------------------------------
 # Verdict
 # ---------------------------------------------------------------------------
 
-class FirewallVerdict(str, Enum):
+
+class FirewallVerdict(StrEnum):
     ALLOW = "allow"
     BLOCK = "block"
     REVIEW = "review"  # Flagged for human review but not hard-blocked
@@ -49,14 +49,20 @@ class FirewallResult:
 # ---------------------------------------------------------------------------
 
 _JAILBREAK_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|context)\b", re.I),
+    re.compile(
+        r"\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|context)\b", re.I
+    ),
     re.compile(r"\bdan\s+mode\b", re.I),
     re.compile(r"\bjailbreak\b", re.I),
     re.compile(r"\bdo\s+anything\s+now\b", re.I),
     re.compile(r"\byou\s+are\s+now\s+(?:an?\s+)?(?:evil|uncensored|unrestricted)\b", re.I),
-    re.compile(r"\bact\s+as\s+if\s+(you\s+have\s+no\s+restrictions|there\s+are\s+no\s+rules)\b", re.I),
+    re.compile(
+        r"\bact\s+as\s+if\s+(you\s+have\s+no\s+restrictions|there\s+are\s+no\s+rules)\b", re.I
+    ),
     re.compile(r"\bforget\s+(your|all)\s+(previous\s+)?(training|rules|instructions)\b", re.I),
-    re.compile(r"\bpretend\s+(you\s+are|to\s+be)\s+(an?\s+)?(?:evil|malicious|unconstrained)\b", re.I),
+    re.compile(
+        r"\bpretend\s+(you\s+are|to\s+be)\s+(an?\s+)?(?:evil|malicious|unconstrained)\b", re.I
+    ),
 ]
 
 _OVERRIDE_PATTERNS: list[re.Pattern[str]] = [
@@ -102,6 +108,7 @@ def _check_encoded_attack(text: str) -> list[str]:
 # Firewall
 # ---------------------------------------------------------------------------
 
+
 class PromptFirewall:
     """Two-stage prompt firewall (heuristic → optional LLM backend).
 
@@ -113,7 +120,7 @@ class PromptFirewall:
 
     def __init__(
         self,
-        llm_backend: Optional[Callable[[str], FirewallResult]] = None,
+        llm_backend: Callable[[str], FirewallResult] | None = None,
         strict_mode: bool = True,
     ) -> None:
         self._llm_backend = llm_backend
@@ -129,7 +136,9 @@ class PromptFirewall:
             PromptFirewallError: In strict mode when verdict is BLOCK.
         """
         if not prompt or not prompt.strip():
-            return FirewallResult(verdict=FirewallVerdict.ALLOW, reason="empty prompt", confidence=1.0)
+            return FirewallResult(
+                verdict=FirewallVerdict.ALLOW, reason="empty prompt", confidence=1.0
+            )
 
         detected: list[str] = []
 
@@ -152,8 +161,7 @@ class PromptFirewall:
             )
             if self._strict_mode:
                 raise PromptFirewallError(
-                    f"Prompt blocked by firewall: {result.reason} "
-                    f"Patterns: {detected}"
+                    f"Prompt blocked by firewall: {result.reason} Patterns: {detected}"
                 )
             return result
 
@@ -173,9 +181,7 @@ class PromptFirewall:
                     confidence=1.0,
                 )
             if result.verdict == FirewallVerdict.BLOCK and self._strict_mode:
-                raise PromptFirewallError(
-                    f"Prompt blocked by LLM firewall: {result.reason}"
-                )
+                raise PromptFirewallError(f"Prompt blocked by LLM firewall: {result.reason}")
             return result
 
         return FirewallResult(

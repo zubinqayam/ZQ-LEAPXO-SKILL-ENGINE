@@ -13,7 +13,6 @@ Key guarantees:
 from __future__ import annotations
 
 import json
-from typing import Union
 
 try:
     import tiktoken  # type: ignore
@@ -31,13 +30,14 @@ from src.core.exceptions import TokenBudgetExceededError
 # ---------------------------------------------------------------------------
 
 SAFETY_BUFFER_FACTOR = 1.15  # 15 % safety margin
-HARD_CUTOFF_RATIO = 0.90     # refuse if predicted > 90 % of context window
-JSON_OVERHEAD_TOKENS = 8     # rough estimate for JSON structural tokens
+HARD_CUTOFF_RATIO = 0.90  # refuse if predicted > 90 % of context window
+JSON_OVERHEAD_TOKENS = 8  # rough estimate for JSON structural tokens
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def count_tokens(text: str) -> int:
     """Return the number of tokens in *text* using cl100k_base encoding.
@@ -52,7 +52,7 @@ def count_tokens(text: str) -> int:
 
 
 def predict_tokens(
-    payload: Union[str, dict, list],
+    payload: str | dict | list,
     *,
     context_window: int = 8192,
 ) -> int:
@@ -120,9 +120,7 @@ def prune_instructions(
     retained: list[dict] = list(non_prunable)
 
     # Count tokens already committed by non-prunable instructions.
-    committed = count_tokens(
-        " ".join(i.get("content", "") for i in non_prunable)
-    )
+    committed = count_tokens(" ".join(i.get("content", "") for i in non_prunable))
 
     for instr in prunable:
         cost = count_tokens(instr.get("content", ""))

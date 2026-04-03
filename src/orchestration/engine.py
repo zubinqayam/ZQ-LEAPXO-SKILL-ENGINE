@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from src.cache.semantic_cache import SemanticCache
 from src.core.exceptions import (
@@ -47,10 +48,10 @@ from src.registry.skill_registry import SkillRegistry
 from src.security.policy_engine import PolicyEngine
 from src.security.prompt_firewall import PromptFirewall
 
-
 # ---------------------------------------------------------------------------
 # Request / Response
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class EngineRequest:
@@ -58,26 +59,27 @@ class EngineRequest:
     region_code: str = "GL"
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     context_tokens_used: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class EngineResponse:
     request_id: str
-    skill_id: Optional[str]
+    skill_id: str | None
     success: bool
     output: Any
     latency_ms: float
     was_cached: bool = False
     token_usage: int = 0
     requires_review: bool = False
-    error: Optional[str] = None
-    circuit_tier: Optional[str] = None
+    error: str | None = None
+    circuit_tier: str | None = None
 
 
 # ---------------------------------------------------------------------------
 # Orchestration Engine
 # ---------------------------------------------------------------------------
+
 
 class OrchestrationEngine:
     """The central execution orchestrator for LEAPXO Skill Engine v2.1.
@@ -88,17 +90,17 @@ class OrchestrationEngine:
 
     def __init__(
         self,
-        l1: Optional[L1Discovery] = None,
-        l2: Optional[L2InstructionLoader] = None,
-        l3: Optional[BaseL3Executor] = None,
-        registry: Optional[SkillRegistry] = None,
-        firewall: Optional[PromptFirewall] = None,
-        policy_engine: Optional[PolicyEngine] = None,
-        cache: Optional[SemanticCache] = None,
-        breakers: Optional[CircuitBreakerRegistry] = None,
+        l1: L1Discovery | None = None,
+        l2: L2InstructionLoader | None = None,
+        l3: BaseL3Executor | None = None,
+        registry: SkillRegistry | None = None,
+        firewall: PromptFirewall | None = None,
+        policy_engine: PolicyEngine | None = None,
+        cache: SemanticCache | None = None,
+        breakers: CircuitBreakerRegistry | None = None,
         *,
         context_window: int = 8192,
-        embedding_fn: Optional[Callable[[str], list[float]]] = None,
+        embedding_fn: Callable[[str], list[float]] | None = None,
     ) -> None:
         self._l1 = l1 or L1Discovery()
         self._l2 = l2 or L2InstructionLoader(context_window=context_window)
@@ -200,7 +202,6 @@ class OrchestrationEngine:
 
         # ── 5. Registry fetch + policy + signature ──────────────────────
         entry = self._registry.get(top.skill_id)
-        skill_dict = entry.schema.model_dump()
         tags = entry.schema.metadata.tags if entry.schema.metadata else []
 
         # Policy check
@@ -286,6 +287,7 @@ class OrchestrationEngine:
         deployments replace this with a real sentence-transformer call.
         """
         import hashlib
+
         h = hashlib.sha256(text.encode("utf-8")).digest()
         # Extend to `dims` dimensions by cycling the hash bytes
         extended = (h * ((dims // 32) + 1))[:dims]
@@ -294,7 +296,7 @@ class OrchestrationEngine:
     @staticmethod
     def _error_response(
         request_id: str,
-        skill_id: Optional[str],
+        skill_id: str | None,
         error: str,
         start: float,
         tier: str,

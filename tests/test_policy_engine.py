@@ -1,9 +1,8 @@
 """Tests for the PolicyEngine."""
 
 import pytest
-
-from src.security.policy_engine import PolicyEngine
 from src.core.exceptions import PolicyViolationError
+from src.security.policy_engine import PolicyEngine
 
 
 @pytest.fixture()

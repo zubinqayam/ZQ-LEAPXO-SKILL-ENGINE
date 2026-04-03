@@ -15,7 +15,7 @@ import asyncio
 import logging
 import os
 import sqlite3
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from pysqlcipher3 import dbapi2 as _sqlite  # type: ignore[import]
+
     _SQLCIPHER_AVAILABLE = True
     logger.info("SQLCipher driver loaded — database will be encrypted at rest")
 except ImportError:
     import sqlite3 as _sqlite  # type: ignore[assignment]
+
     _SQLCIPHER_AVAILABLE = False
     logger.warning(
         "pysqlcipher3 not installed — falling back to plain SQLite. "
@@ -49,7 +51,7 @@ class Database:
 
     def __init__(self, path: str = _DEFAULT_DB_PATH) -> None:
         self._path = path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -69,9 +71,7 @@ class Database:
             # validating that the key contains no single-quote characters.
             safe_key = _DB_KEY.replace("'", "")
             if safe_key != _DB_KEY:
-                raise ValueError(
-                    "LEAPXO_DB_KEY must not contain single-quote characters."
-                )
+                raise ValueError("LEAPXO_DB_KEY must not contain single-quote characters.")
             conn.execute(f"PRAGMA key='{safe_key}'")
 
         # Enable WAL for concurrent readers + single writer
@@ -127,9 +127,7 @@ class Database:
     # ------------------------------------------------------------------
     # Generic query helpers (thread-safe via asyncio.Lock)
     # ------------------------------------------------------------------
-    async def execute(
-        self, sql: str, params: Tuple[Any, ...] = ()
-    ) -> int:
+    async def execute(self, sql: str, params: tuple[Any, ...] = ()) -> int:
         """Execute a write statement; returns lastrowid."""
         async with self._lock:
             assert self._conn, "Database not connected"
@@ -137,17 +135,13 @@ class Database:
             self._conn.commit()
             return cur.lastrowid  # type: ignore[return-value]
 
-    async def fetchall(
-        self, sql: str, params: Tuple[Any, ...] = ()
-    ) -> List[Dict[str, Any]]:
+    async def fetchall(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
         """Execute a read query and return all rows as dicts."""
         assert self._conn, "Database not connected"
         cur = self._conn.execute(sql, params)
         return [dict(row) for row in cur.fetchall()]
 
-    async def fetchone(
-        self, sql: str, params: Tuple[Any, ...] = ()
-    ) -> Optional[Dict[str, Any]]:
+    async def fetchone(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
         """Execute a read query and return the first row as a dict (or None)."""
         assert self._conn, "Database not connected"
         cur = self._conn.execute(sql, params)
@@ -160,7 +154,7 @@ class Database:
     async def update_with_version(
         self,
         table: str,
-        updates: Dict[str, Any],
+        updates: dict[str, Any],
         where_key: str,
         where_value: Any,
         expected_version: int,
@@ -171,17 +165,12 @@ class Database:
         Returns True on success, False when the row's version does not match
         `expected_version` (i.e. a concurrent writer modified the row first).
         """
-        set_clauses = ", ".join(
-            f"{col} = ?" for col in updates if col != "version"
-        )
+        set_clauses = ", ".join(f"{col} = ?" for col in updates if col != "version")
         set_clauses += ", version = version + 1, updated_at = datetime('now')"
         values = [v for k, v in updates.items() if k != "version"]
         values += [where_value, expected_version]
 
-        sql = (
-            f"UPDATE {table} SET {set_clauses} "
-            f"WHERE {where_key} = ? AND version = ?"
-        )
+        sql = f"UPDATE {table} SET {set_clauses} WHERE {where_key} = ? AND version = ?"
         async with self._lock:
             assert self._conn, "Database not connected"
             cur = self._conn.execute(sql, values)
@@ -191,9 +180,7 @@ class Database:
     # ------------------------------------------------------------------
     # Agent-specific helpers
     # ------------------------------------------------------------------
-    async def upsert_agent(
-        self, model_hash: str, label: str, trust_score: float
-    ) -> None:
+    async def upsert_agent(self, model_hash: str, label: str, trust_score: float) -> None:
         await self.execute(
             """
             INSERT INTO agents (model_hash, label, trust_score)
@@ -222,7 +209,7 @@ class Database:
             (model_hash,),
         )
 
-    async def list_agents(self, archived: bool = False) -> List[Dict[str, Any]]:
+    async def list_agents(self, archived: bool = False) -> list[dict[str, Any]]:
         return await self.fetchall(
             "SELECT * FROM agents WHERE archived = ? ORDER BY trust_score DESC",
             (1 if archived else 0,),
@@ -231,17 +218,13 @@ class Database:
     # ------------------------------------------------------------------
     # Telemetry helpers
     # ------------------------------------------------------------------
-    async def record_telemetry(
-        self, metric_name: str, value: float, labels: str = ""
-    ) -> None:
+    async def record_telemetry(self, metric_name: str, value: float, labels: str = "") -> None:
         await self.execute(
             "INSERT INTO telemetry (metric_name, value, labels) VALUES (?, ?, ?)",
             (metric_name, value, labels),
         )
 
-    async def audit(
-        self, event_type: str, model_hash: str = "", payload: str = ""
-    ) -> None:
+    async def audit(self, event_type: str, model_hash: str = "", payload: str = "") -> None:
         await self.execute(
             "INSERT INTO audit_events (event_type, model_hash, payload) VALUES (?, ?, ?)",
             (event_type, model_hash, payload),
@@ -251,7 +234,7 @@ class Database:
 # ---------------------------------------------------------------------------
 # Module-level singleton (initialised in FastAPI lifespan)
 # ---------------------------------------------------------------------------
-_db: Optional[Database] = None
+_db: Database | None = None
 
 
 def get_db() -> Database:
