@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "leapxo-skill-engine.fullname" . }}-orchestrator
+  labels:
+    {{- include "leapxo-skill-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orchestrator
+spec:
+  replicas: {{ .Values.orchestrator.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "leapxo-skill-engine.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orchestrator
+  template:
+    metadata:
+      labels:
+        {{- include "leapxo-skill-engine.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orchestrator
+      annotations:
+        {{- toYaml .Values.orchestrator.podAnnotations | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: orchestrator
+          image: "{{ .Values.orchestrator.image.repository }}:{{ .Values.orchestrator.image.tag }}"
+          imagePullPolicy: {{ .Values.orchestrator.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: CONTEXT_WINDOW
+              value: "{{ .Values.orchestrator.contextWindow }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.orchestrator.env.LOG_LEVEL }}"
+            - name: LEAPXO_ENV
+              value: "{{ .Values.orchestrator.env.LEAPXO_ENV }}"
+            - name: PORT
+              value: "{{ .Values.orchestrator.env.PORT }}"
+            - name: ENFORCE_SIGNATURES
+              value: "{{ .Values.security.enforceSignatures }}"
+            - name: FIREWALL_STRICT
+              value: "{{ .Values.security.promptFirewall.strictMode }}"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: leapxo-redis-secret
+                  key: redis-url
+                  optional: true
+            {{- range .Values.security.secretEnvVars }}
+            - name: {{ .envVar }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .secretKey }}
+                  optional: true
+            {{- end }}
+          resources:
+            {{- toYaml .Values.orchestrator.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
