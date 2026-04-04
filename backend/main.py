@@ -29,6 +29,15 @@ TRUST_DECAY_FACTOR = 0.9
 # Dynamic port — read from environment (Tauri sidecar / container / K8s)
 PORT: int = int(os.environ.get("PORT", "8000"))
 
+
+def parse_cors_allow_origins(raw: str | None) -> list[str]:
+    """Comma-separated allowlist; empty or unset → allow all (`*`), same as backend/src/server.js."""
+    s = (raw or "").strip()
+    if not s:
+        return ["*"]
+    origins = [o.strip() for o in s.split(",") if o.strip()]
+    return origins if origins else ["*"]
+
 # Telemetry rate limit: max requests per minute per client IP
 TELEMETRY_RATE_LIMIT = int(os.environ.get("LEAPXO_TELEMETRY_RATE_LIMIT", "60"))
 
@@ -289,7 +298,7 @@ app = FastAPI(title="LeapXO Skill Engine", version="9.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=parse_cors_allow_origins(os.environ.get("CORS_ALLOWED_ORIGINS")),
     allow_methods=["*"],
     allow_headers=["*"],
 )

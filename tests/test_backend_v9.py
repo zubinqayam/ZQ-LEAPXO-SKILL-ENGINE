@@ -117,6 +117,28 @@ class TestTelemetryRequestValidation:
             TelemetryRequest(metric_name="m", value=1.0, injected="evil")
 
 
+class TestParseCorsAllowOrigins:
+    def test_empty_unset_means_wildcard(self):
+        from backend.main import parse_cors_allow_origins
+
+        assert parse_cors_allow_origins(None) == ["*"]
+        assert parse_cors_allow_origins("") == ["*"]
+        assert parse_cors_allow_origins("   ") == ["*"]
+
+    def test_comma_separated_origins(self):
+        from backend.main import parse_cors_allow_origins
+
+        out = parse_cors_allow_origins(
+            "https://app.leapxo.example.com, https://other.example "
+        )
+        assert out == ["https://app.leapxo.example.com", "https://other.example"]
+
+    def test_only_commas_falls_back_to_wildcard(self):
+        from backend.main import parse_cors_allow_origins
+
+        assert parse_cors_allow_origins(", , ") == ["*"]
+
+
 # ---------------------------------------------------------------------------
 # Dynamic PORT configuration
 # ---------------------------------------------------------------------------
