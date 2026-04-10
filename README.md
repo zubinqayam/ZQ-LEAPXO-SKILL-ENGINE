@@ -21,7 +21,8 @@
 9. [Running Tests](#running-tests)
 10. [QAQC Results](#qaqc-results)
 11. [Skill Schema](#skill-schema)
-12. [Roadmap](#roadmap)
+12. [Design Principles](#design-principles)
+13. [Roadmap](#roadmap)
 
 ---
 
