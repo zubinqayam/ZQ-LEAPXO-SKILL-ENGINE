@@ -45,3 +45,4 @@ frontend/dist/
 
 # Tauri build artifacts
 frontend/src-tauri/target/
+.env
