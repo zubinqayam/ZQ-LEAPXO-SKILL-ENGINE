@@ -3,7 +3,7 @@
  * @name Hello world
  * @kind problem
  * @problem.severity warning
- * @id python/example/hello-world
+ * @id codeql-custom-queries-python/example/hello-world
  */
 
 import python
